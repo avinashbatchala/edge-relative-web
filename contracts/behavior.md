@@ -25,3 +25,10 @@ Dark neutral surfaces, cyan focus, emerald bullish, rose bearish, amber mixed, m
 
 ## Deliberate scope
 JSON catalog/config, file candle cache, in-memory snapshots, HTTP/WebSocket, local single-user runtime. Future backtesting may call the same pure indicator/scanner functions on an as-of prefix; fills, costs, slippage, lifecycle, and metrics are not implemented. Local regular-session handling does not include special sessions/corporate action adjustments. Exact TOS warmup parity and live Groww validation require external verification.
+
+
+## Continuous sessions and recoverable gaps
+
+Catalog `session_profile` is explicit: `nse_cas` closes continuous analysis at 15:15 IST from 2026-08-03, otherwise `nse_cash` closes at 15:30. Candle timestamps mark starts, so the last completed slots are respectively 15:10 and 15:25. Calculations and scanner freshness use the earliest close among their configured dependencies. Excluded closing-auction rows cannot introduce artificial missing candles or daily warmup resets.
+
+Only observed source/peer trading dates establish the expected grid. Completed requested slots absent or quarantined in a source are retried in bounded broker calls; they remain null if recovery fails. Valid existing OHLC is preserved; missing traded volume is accepted only with matching OHLC. No index-volume retry, forward fill, fabricated prices, holiday assumption, or changed event formula is introduced. Recovery diagnostics are included in the captured export run.

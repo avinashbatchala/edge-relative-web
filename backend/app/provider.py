@@ -7,7 +7,8 @@ import time
 from pathlib import Path
 import pandas as pd
 from .contracts import Instrument
-from .indicators import TZ, parse_candles
+from .indicators import TZ, parse_candles, candle_timestamp
+from .sessions import continuous_grid
 
 
 class ProviderError(Exception):
@@ -126,11 +127,12 @@ class GrowwProvider:
                 "Groww SDK is missing required candle interval constants.",
             )
         rows = []
+        chunks = []
         cursor = start
         while cursor < end:
             stop = min(cursor + pd.Timedelta(days=29 if interval == 5 else 179), end)
             key = hashlib.sha256(
-                f"{instrument.groww_symbol}|{cursor}|{stop}|{interval}|v2".encode()
+                f"{instrument.groww_symbol}|{cursor}|{stop}|{interval}|{instrument.session_profile}|v3".encode()
             ).hexdigest()
             file = self.cache / f"{key}.json"
             immutable = stop.normalize() < pd.Timestamp.now(tz=TZ).normalize()
@@ -173,23 +175,186 @@ class GrowwProvider:
                 temporary = file.with_suffix(".tmp")
                 temporary.write_text(json.dumps(response))
                 temporary.replace(file)
+            chunks.append((file, cursor, stop, response, immutable))
             rows.extend(payload["candles"])
             cursor = stop
+        if not rows:
+            raise ProviderError(
+                "history_empty",
+                f"{instrument.symbol}: Groww returned no candles for this range.",
+            )
         try:
             data = parse_candles(
                 {"candles": rows},
                 interval=interval,
                 now=min(end, pd.Timestamp.now(tz=TZ)),
                 instrument=instrument.symbol,
+                session_profile=instrument.session_profile,
             )
             data = data.loc[
                 data.index >= (start if interval == 5 else start.normalize())
             ]
             if data.empty:
                 raise ValueError("No data")
+            if interval == 5:
+                data.attrs["_cache_chunks"] = [
+                    (str(file), left.isoformat(), right.isoformat())
+                    for file, left, right, _, immutable in chunks
+                    if immutable
+                ]
+                data = self.repair_gaps(instrument, data, start, end)
             return data
         except ValueError:
             raise ProviderError(
                 "history_invalid",
                 f"{instrument.symbol}: no usable history or conflicting/malformed candles. Verify date range and instrument.",
             ) from None
+
+    def repair_gaps(self, instrument, data, start, end, session_dates=None):
+        """Retry actual completed-session holes; never forward-fill or synthesize OHLCV.
+
+        Dates must be observed locally or by a peer, not inferred from weekdays.
+        At most two attempts per contiguous range and eight calls per instrument.
+        """
+        start, end = pd.Timestamp(start).tz_convert(TZ), pd.Timestamp(end).tz_convert(
+            TZ
+        )
+        cutoff = min(end, pd.Timestamp.now(tz=TZ) - pd.Timedelta(seconds=20))
+        dates = session_dates if session_dates is not None else data.index.normalize()
+        grid = continuous_grid(dates, instrument, start=start, asof=cutoff)
+        attrs = dict(data.attrs)
+        result = data.reindex(grid).copy()
+        report = dict(attrs.get("gap_recovery", {}))
+        report.setdefault("requests", 0)
+        report.setdefault("recovered_price_bars", 0)
+        report.setdefault("recovered_volume_bars", 0)
+        report.setdefault("repaired_timestamps", [])
+        report.setdefault("failed_requests", 0)
+        prices = ["open", "high", "low", "close"]
+
+        def missing():
+            price = result[prices].isna().any(axis=1)
+            volume = (
+                result.volume.isna() & ~price
+                if instrument.kind != "index"
+                else price & False
+            )
+            return price, volume
+
+        price, volume = missing()
+        holes = grid[price | volume]
+        groups = []
+        for stamp in holes:
+            if not groups or stamp - groups[-1][-1] != pd.Timedelta(minutes=5):
+                groups.append([])
+            groups[-1].append(stamp)
+        api = None
+        for group in groups:
+            for attempt in range(2):
+                price, volume = missing()
+                wanted = pd.DatetimeIndex(
+                    [t for t in group if price.loc[t] or volume.loc[t]]
+                )
+                if wanted.empty or report["requests"] >= 8:
+                    break
+                if api is None:
+                    api = self.connect()
+                report["requests"] += 1
+                try:
+                    response = api.get_historical_candles(
+                        exchange="NSE",
+                        segment="CASH",
+                        groww_symbol=instrument.groww_symbol,
+                        start_time=wanted[0].strftime("%Y-%m-%d %H:%M:%S"),
+                        end_time=(wanted[-1] + pd.Timedelta(minutes=5)).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                        candle_interval=api.CANDLE_INTERVAL_MIN_5,
+                    )
+                    payload = (
+                        response.get("payload", response)
+                        if isinstance(response, dict)
+                        else {}
+                    )
+                    if not payload.get("candles"):
+                        continue
+                    recovered = parse_candles(
+                        response,
+                        now=cutoff,
+                        instrument=instrument.symbol,
+                        session_profile=instrument.session_profile,
+                    )
+                    for stamp in wanted.intersection(recovered.index):
+                        bar = recovered.loc[stamp]
+                        if bar[prices].isna().any():
+                            continue
+                        changed = False
+                        if price.loc[stamp]:
+                            result.loc[stamp, prices] = bar[prices]
+                            if pd.notna(bar.volume):
+                                result.loc[stamp, "volume"] = bar.volume
+                            report["recovered_price_bars"] += 1
+                            changed = True
+                        elif (
+                            volume.loc[stamp]
+                            and pd.notna(bar.volume)
+                            and bar[prices].equals(result.loc[stamp, prices])
+                        ):
+                            result.loc[stamp, "volume"] = bar.volume
+                            report["recovered_volume_bars"] += 1
+                            changed = True
+                        if (
+                            changed
+                            and stamp.isoformat() not in report["repaired_timestamps"]
+                        ):
+                            report["repaired_timestamps"].append(stamp.isoformat())
+                except Exception:
+                    # Broker failures can contain tokens; diagnostics never retain exceptions.
+                    report["failed_requests"] += 1
+                finally:
+                    time.sleep(0.4)
+        price, volume = missing()
+        report["remaining_price_gaps"] = int(price.sum())
+        report["remaining_volume_gaps"] = int(volume.sum())
+        report["unresolved_timestamps"] = [t.isoformat() for t in grid[price | volume]]
+        report["request_budget"] = 8
+        result.attrs = {**attrs, "gap_recovery": report}
+        self._persist_repairs(result)
+        return result
+
+    def _persist_repairs(self, data):
+        # Preserve raw broker rows (including excluded auction rows); replace only
+        # timestamps repaired from a validated response, even on the peer-date pass.
+        repaired = set(data.attrs["gap_recovery"]["repaired_timestamps"])
+        if not repaired:
+            return
+        for path, left, right in data.attrs.get("_cache_chunks", []):
+            file = Path(path)
+            selected = data.loc[
+                (data.index >= pd.Timestamp(left)) & (data.index < pd.Timestamp(right))
+            ]
+            updates = {
+                stamp.isoformat(): [
+                    stamp.isoformat(),
+                    *[None if pd.isna(v) else float(v) for v in bar],
+                ]
+                for stamp, bar in selected.iterrows()
+                if stamp.isoformat() in repaired
+            }
+            if not updates:
+                continue
+            try:
+                response = json.loads(file.read_text())
+                payload = response.get("payload", response)
+                original = [
+                    row
+                    for row in payload["candles"]
+                    if candle_timestamp(row[0]).isoformat() not in updates
+                ]
+                payload["candles"] = original + list(updates.values())
+                temporary = file.with_suffix(".tmp")
+                temporary.write_text(json.dumps(response))
+                temporary.replace(file)
+            except (ValueError, OSError, KeyError, IndexError, TypeError):
+                # A cache write failure must not discard verified in-memory prices.
+                data.attrs["gap_recovery"]["cache_write_failed"] = True

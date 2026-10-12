@@ -7,7 +7,8 @@
     "groww_symbol": "NSE-TCS",
     "exchange_token": "11536",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   },
   {
     "symbol": "HDFCBANK",
@@ -17,7 +18,8 @@
     "groww_symbol": "NSE-HDFCBANK",
     "exchange_token": "1333",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   },
   {
     "symbol": "SUNPHARMA",
@@ -27,7 +29,8 @@
     "groww_symbol": "NSE-SUNPHARMA",
     "exchange_token": "3351",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   },
   {
     "symbol": "NIFTY 50",
@@ -37,7 +40,8 @@
     "groww_symbol": "NSE-NIFTY",
     "exchange_token": "NIFTY",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   },
   {
     "symbol": "NIFTYBEES",
@@ -47,7 +51,8 @@
     "groww_symbol": "NSE-NIFTYBEES",
     "exchange_token": "10576",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cash"
   },
   {
     "symbol": "NIFTY IT",
@@ -57,7 +62,8 @@
     "groww_symbol": "NSE-NIFTYIT",
     "exchange_token": "NIFTYIT",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   },
   {
     "symbol": "NIFTY BANK",
@@ -67,7 +73,8 @@
     "groww_symbol": "NSE-BANKNIFTY",
     "exchange_token": "BANKNIFTY",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   },
   {
     "symbol": "NIFTY PHARMA",
@@ -77,6 +84,7 @@
     "groww_symbol": "NSE-NIFTYPHARMA",
     "exchange_token": "NIFTYPHARMA",
     "exchange": "NSE",
-    "segment": "CASH"
+    "segment": "CASH",
+    "session_profile": "nse_cas"
   }
 ]

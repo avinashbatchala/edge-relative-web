@@ -275,6 +275,22 @@
           }
         }
       }
+    },
+    "/": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -379,6 +395,21 @@
       },
       "ChartResponse": {
         "properties": {
+          "session_profile": {
+            "type": "string",
+            "enum": [
+              "nse_cash",
+              "nse_cas"
+            ],
+            "title": "Session Profile",
+            "default": "nse_cash"
+          },
+          "session_policy_version": {
+            "type": "string",
+            "const": "nse-continuous-v1",
+            "title": "Session Policy Version",
+            "default": "nse-continuous-v1"
+          },
           "run_id": {
             "anyOf": [
               {
@@ -580,6 +611,15 @@
             "const": "CASH",
             "title": "Segment",
             "default": "CASH"
+          },
+          "session_profile": {
+            "type": "string",
+            "enum": [
+              "nse_cash",
+              "nse_cas"
+            ],
+            "title": "Session Profile",
+            "default": "nse_cash"
           }
         },
         "additionalProperties": false,
