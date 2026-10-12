@@ -40,6 +40,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  FileArchive,
   Maximize2,
   Minimize2,
   Pause,
@@ -50,6 +51,7 @@ import {
 } from "lucide-vue-next";
 import type { ChartData, Point, Quote, Row, Snapshot, Status } from "./types";
 import { fmt, ist, numeric } from "./format";
+import { downloadExport, type ExportKind } from "./download";
 import { readChartTheme, type ChartTheme } from "./chart-theme";
 import {
   ChartInstanceSlot,
@@ -94,6 +96,22 @@ const emit = defineEmits<{
   (event: "toggle-live", value: boolean): void;
   (event: "update:layout", value: WorkspaceLayout): void;
 }>();
+
+const exportBusy = ref(false);
+const exportError = ref("");
+const exportNotice = ref("");
+async function exportData(kind: ExportKind) {
+  const data = props.data;
+  if (!data || data.symbol !== props.selectedSymbol || exportBusy.value) return;
+  exportBusy.value = true; exportError.value = ""; exportNotice.value = "";
+  try {
+    const filename = await downloadExport(kind, data.symbol, data.run_id);
+    exportNotice.value = `Download started: ${filename}`;
+  } catch (error) {
+    exportError.value = error instanceof Error ? error.message : "Export failed. Please retry.";
+  } finally { exportBusy.value = false; }
+}
+watch(() => props.selectedSymbol, () => { exportError.value = ""; exportNotice.value = ""; });
 
 const studyLabels: Record<StudyKey, string> = {
   rrs: "RRS",
@@ -690,6 +708,8 @@ onBeforeUnmount(() => {
       </aside>
 
       <section class="chart-stage" aria-label="Chart workspace">
+        <div v-if="exportError" class="export-feedback export-error" role="alert">{{ exportError }}</div>
+        <div v-else-if="exportBusy || exportNotice" class="export-feedback" role="status">{{ exportBusy ? 'Preparing full loaded-run export…' : exportNotice }}</div>
         <div class="chart-toolbar">
           <div class="chart-instrument-heading">
             <button class="icon-button mobile-sidebar-button" type="button" aria-label="Open instrument scanner" title="Open instrument scanner" @click="toggleSidebar"><Search :size="15" /></button>
@@ -706,7 +726,10 @@ onBeforeUnmount(() => {
           <div class="chart-toolbar-actions">
             <TooltipRoot><TooltipTrigger as-child><button class="icon-button" type="button" aria-label="Indicator settings" title="Indicator settings" @click="emit('settings')"><Settings2 :size="16" /></button></TooltipTrigger><TooltipPortal><TooltipContent class="tooltip">Indicator settings</TooltipContent></TooltipPortal></TooltipRoot>
             <TooltipRoot><TooltipTrigger as-child><button class="icon-button" type="button" aria-label="Refresh confirmed chart data" title="Refresh confirmed chart data" :disabled="busy" @click="emit('fetch')"><RotateCcw :size="15" /></button></TooltipTrigger><TooltipPortal><TooltipContent class="tooltip">Fetch confirmed history</TooltipContent></TooltipPortal></TooltipRoot>
-            <a v-if="data && data.symbol === selectedSymbol" class="icon-button export-link" :href="'/api/v1/exports/' + encodeURIComponent(selectedSymbol) + '.csv'" :aria-label="`Export ${selectedSymbol} CSV`" title="Export CSV"><Download :size="16" /></a>
+            <template v-if="data && data.symbol === selectedSymbol">
+              <button type="button" class="icon-button export-link" :disabled="exportBusy" :aria-busy="exportBusy" :aria-label="`Export ${selectedSymbol} full CSV`" title="CSV: all loaded candles, indicators and signals; independent of replay" @click="exportData('csv')"><Download :size="16" /></button>
+              <button type="button" class="icon-button export-link" :disabled="exportBusy" :aria-busy="exportBusy" aria-label="Export complete scan diagnostic ZIP" title="Run ZIP: all stocks, benchmark inputs, daily context, settings and diagnostics" @click="exportData('zip')"><FileArchive :size="16" /></button>
+            </template>
           </div>
         </div>
         <p class="benchmark-detail">{{ data?.sector_benchmark ? `Sector ${data.sector_benchmark}` : 'Sector benchmark unavailable' }} <span>·</span> Confirmed candles and scanner metrics reconcile to the latest completed bar.</p>

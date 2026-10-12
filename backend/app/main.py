@@ -1,6 +1,4 @@
 import asyncio
-import csv
-import io
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -10,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from .contracts import Instrument, ScanRequest, ScanSnapshot, ChartResponse, Status
 from .provider import ProviderError
 from .service import Workspace
+from .exports import safe_filename
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -75,32 +74,67 @@ def create_app(config_dir=None):
             raise HTTPException(404, "No chart for this symbol; fetch history first.")
         return workspace.charts[symbol]
 
-    @app.get("/api/v1/exports/{symbol}.csv")
-    def export(symbol: str):
-        data = chart(symbol)
-        output = io.StringIO()
-        writer = csv.writer(output)
-        features = sorted({k for p in data.points for k in p.features})
-        writer.writerow(
-            ["epoch_seconds", "open", "high", "low", "close", "volume", *features]
-        )
-        for p in data.points:
-            writer.writerow(
-                [
-                    p.time,
-                    p.open,
-                    p.high,
-                    p.low,
-                    p.close,
-                    p.volume,
-                    *[p.features.get(k) for k in features],
-                ]
+    def captured_export(run_id: str | None):
+        run = workspace.export_run
+        if run is None:
+            raise HTTPException(
+                404, "Fetch Groww history first; no loaded export run exists."
             )
-        safe_name = "".join(c for c in symbol if c.isalnum() or c in "-_")
+        if run_id is not None and run_id != run.run_id:
+            raise HTTPException(
+                409,
+                "The displayed run was replaced. Refresh the chart and retry the export.",
+            )
+        return run
+
+    @app.get(
+        "/api/v1/exports/run.zip",
+        response_class=Response,
+        responses={
+            200: {
+                "content": {
+                    "application/zip": {
+                        "schema": {"type": "string", "format": "binary"}
+                    }
+                }
+            },
+            404: {"description": "No loaded run"},
+            409: {"description": "Run replaced"},
+        },
+    )
+    def export_run(run_id: str | None = None):
+        run = captured_export(run_id)
         return Response(
-            output.getvalue(),
+            run.bundle(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="edge-relative-{run.run_id}.zip"',
+                "Cache-Control": "no-store",
+                "X-Export-Run-Id": run.run_id,
+            },
+        )
+
+    @app.get(
+        "/api/v1/exports/{symbol}.csv",
+        response_class=Response,
+        responses={
+            200: {"content": {"text/csv": {"schema": {"type": "string"}}}},
+            404: {"description": "No loaded chart"},
+            409: {"description": "Run replaced"},
+        },
+    )
+    def export(symbol: str, run_id: str | None = None):
+        run = captured_export(run_id)
+        if symbol not in run.charts:
+            raise HTTPException(404, "No chart for this symbol; fetch history first.")
+        return Response(
+            run.csv(symbol),
             media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="{safe_name}.csv"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_filename(symbol)}-{run.run_id}.csv"',
+                "Cache-Control": "no-store",
+                "X-Export-Run-Id": run.run_id,
+            },
         )
 
     @app.websocket("/api/v1/ws")
