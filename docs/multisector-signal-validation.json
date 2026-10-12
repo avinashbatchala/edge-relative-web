@@ -1,0 +1,2586 @@
+{
+  "sample": {
+    "stocks": 20,
+    "sectors": 6,
+    "raw_stock_slots": 408060,
+    "usable_stock_prices": 406444,
+    "observed_source_sessions": 274,
+    "evaluation_market_sessions": 250,
+    "stock_sessions": 5000,
+    "labeled_outcomes_all_horizons": 933066,
+    "causal_prefix_checks": 80,
+    "tests_passed": 62
+  },
+  "versions": {
+    "python": "3.12.14",
+    "numpy": "2.5.4",
+    "pandas": "2.3.3",
+    "scikit_learn": "1.7.2",
+    "scipy": "1.18.1"
+  },
+  "design": {
+    "version": "intraday-direction-research-v1",
+    "evaluation_start": "2025-10-01",
+    "development_end_exclusive": "2026-06-01",
+    "selection_start": "2026-06-01",
+    "selection_end_exclusive": "2026-08-01",
+    "test_start": "2026-08-03",
+    "test_end_inclusive": "2026-10-12",
+    "primary_horizon_minutes": 30,
+    "secondary_horizons_minutes": [
+      15,
+      60
+    ],
+    "round_trip_cost_bp": 10,
+    "material_move_threshold_bp": 10,
+    "earliest_decision_ist": "09:45",
+    "cold_stocks": [
+      "HCLTECH",
+      "AXISBANK",
+      "DRREDDY",
+      "MARUTI",
+      "NESTLEIND",
+      "HINDALCO"
+    ],
+    "previously_inspected_stock": "TCS",
+    "classifier_probability_thresholds": [
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6
+    ],
+    "regressor_return_thresholds_bp": [
+      5,
+      10,
+      15,
+      20
+    ],
+    "model_grid": {
+      "rule_rrs_lengths": [
+        8,
+        12,
+        20
+      ],
+      "rule_confirmation_bars": [
+        1,
+        2,
+        3
+      ],
+      "rule_ema_agreement": [
+        false,
+        true
+      ],
+      "rule_rrs_strength_thresholds": [
+        0,
+        0.5
+      ],
+      "logistic_C": [
+        0.01,
+        0.1,
+        1.0
+      ],
+      "hist_gradient_boosting_leaves": [
+        7,
+        15,
+        31
+      ],
+      "boosting_iterations": 150,
+      "boosting_learning_rate": 0.05,
+      "boosting_min_samples_leaf": 100,
+      "boosting_l2_regularization": 10
+    },
+    "walk_forward_validation_months": [
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05"
+    ],
+    "selection_min_predictions": 200,
+    "selection_min_coverage": 0.05,
+    "selection_min_sectors": 4,
+    "deployment_gates": {
+      "test_min_predictions": 500,
+      "test_min_bullish_predictions": 100,
+      "test_min_bearish_predictions": 100,
+      "test_min_coverage": 0.05,
+      "test_min_sectors": 4,
+      "test_net_return_day_bootstrap_lower_bound_gt": 0,
+      "test_accuracy_excess_over_training_majority_day_bootstrap_lower_bound_gt": 0,
+      "test_net_return_5day_block_bootstrap_lower_bound_gt": 0,
+      "test_accuracy_excess_over_majority_5day_block_bootstrap_lower_bound_gt": 0,
+      "cold_stock_mean_net_return_gt": 0
+    },
+    "selection_objective": "Highest validation mean signed return minus costs, subject to coverage/sample/sector requirements; require positive mean net return in at least 3 of 4 development folds.",
+    "test_policy": "Freeze model and threshold before loading final test rows. Do not retune after final-test results. TCS is excluded from the primary aggregate because its recent outcomes were examined in earlier research."
+  },
+  "frozen_model": {
+    "chosen": {
+      "config": {
+        "family": "boosted_classifier",
+        "leaves": 7
+      },
+      "threshold": 0.45,
+      "selection": {
+        "predictions": 369,
+        "eligible_rows": 6776,
+        "actionable_bar_coverage": 0.054456906729634005,
+        "sectors": 6,
+        "stocks": 14,
+        "days": 44,
+        "accuracy": 0.5203252032520326,
+        "material_precision": 0.3983739837398374,
+        "mean_gross_bp": 3.647707857583619,
+        "mean_net_bp": -6.352292142416381,
+        "bullish_predictions": 154,
+        "bearish_predictions": 215,
+        "bullish_accuracy": 0.5714285714285714,
+        "bearish_accuracy": 0.48372093023255813,
+        "majority_accuracy_same_entries": 0.47696476964769646,
+        "momentum_accuracy_same_entries": 0.4715447154471545,
+        "net_bp_at_costs": {
+          "0": 3.647707857583619,
+          "5": -1.3522921424163812,
+          "10": -6.352292142416381,
+          "20": -16.35229214241638
+        },
+        "by_sector": {
+          "NIFTY AUTO": {
+            "predictions": 58,
+            "accuracy": 0.4827586206896552,
+            "mean_net_bp": -6.537352375545137
+          },
+          "NIFTY BANK": {
+            "predictions": 51,
+            "accuracy": 0.5686274509803921,
+            "mean_net_bp": -8.303277507370654
+          },
+          "NIFTY FMCG": {
+            "predictions": 35,
+            "accuracy": 0.5428571428571428,
+            "mean_net_bp": 12.598751611983054
+          },
+          "NIFTY IT": {
+            "predictions": 126,
+            "accuracy": 0.5158730158730159,
+            "mean_net_bp": -9.220423821191252
+          },
+          "NIFTY METAL": {
+            "predictions": 53,
+            "accuracy": 0.5283018867924528,
+            "mean_net_bp": -11.578926047586751
+          },
+          "NIFTY PHARMA": {
+            "predictions": 46,
+            "accuracy": 0.5,
+            "mean_net_bp": -4.497000746115984
+          }
+        },
+        "by_month": {
+          "2026-06": {
+            "predictions": 208,
+            "accuracy": 0.49038461538461536,
+            "mean_net_bp": -10.128430601389356
+          },
+          "2026-07": {
+            "predictions": 161,
+            "accuracy": 0.5590062111801242,
+            "mean_net_bp": -1.4738027047370115
+          }
+        }
+      },
+      "folds": [
+        {
+          "month": "2026-02",
+          "predictions": 393,
+          "eligible_rows": 3080,
+          "actionable_bar_coverage": 0.1275974025974026,
+          "sectors": 6,
+          "stocks": 14,
+          "days": 20,
+          "accuracy": 0.5190839694656488,
+          "material_precision": 0.3944020356234097,
+          "mean_gross_bp": 0.47573878222071947,
+          "mean_net_bp": -9.52426121777928,
+          "bullish_predictions": 127,
+          "bearish_predictions": 266,
+          "bullish_accuracy": 0.5433070866141733,
+          "bearish_accuracy": 0.5075187969924813,
+          "majority_accuracy_same_entries": 0.49872773536895676,
+          "momentum_accuracy_same_entries": 0.43765903307888043,
+          "net_bp_at_costs": {
+            "0": 0.47573878222071947,
+            "5": -4.524261217779281,
+            "10": -9.52426121777928,
+            "20": -19.52426121777928
+          },
+          "by_sector": {
+            "NIFTY AUTO": {
+              "predictions": 51,
+              "accuracy": 0.49019607843137253,
+              "mean_net_bp": -13.070267885178142
+            },
+            "NIFTY BANK": {
+              "predictions": 68,
+              "accuracy": 0.4117647058823529,
+              "mean_net_bp": -17.095257204624545
+            },
+            "NIFTY FMCG": {
+              "predictions": 46,
+              "accuracy": 0.4782608695652174,
+              "mean_net_bp": -14.385510219874499
+            },
+            "NIFTY IT": {
+              "predictions": 114,
+              "accuracy": 0.6228070175438597,
+              "mean_net_bp": -2.143241698433224
+            },
+            "NIFTY METAL": {
+              "predictions": 77,
+              "accuracy": 0.44155844155844154,
+              "mean_net_bp": -10.800390103403554
+            },
+            "NIFTY PHARMA": {
+              "predictions": 37,
+              "accuracy": 0.6486486486486487,
+              "mean_net_bp": -4.764336346784184
+            }
+          },
+          "by_month": {
+            "2026-02": {
+              "predictions": 393,
+              "accuracy": 0.5190839694656488,
+              "mean_net_bp": -9.52426121777928
+            }
+          }
+        },
+        {
+          "month": "2026-03",
+          "predictions": 907,
+          "eligible_rows": 2926,
+          "actionable_bar_coverage": 0.3099794941900205,
+          "sectors": 6,
+          "stocks": 14,
+          "days": 19,
+          "accuracy": 0.5270121278941565,
+          "material_precision": 0.4211686879823594,
+          "mean_gross_bp": 4.507816519832971,
+          "mean_net_bp": -5.492183480167029,
+          "bullish_predictions": 311,
+          "bearish_predictions": 596,
+          "bullish_accuracy": 0.5241157556270096,
+          "bearish_accuracy": 0.5285234899328859,
+          "majority_accuracy_same_entries": 0.4961411245865491,
+          "momentum_accuracy_same_entries": 0.49834619625137816,
+          "net_bp_at_costs": {
+            "0": 4.507816519832971,
+            "5": -0.4921834801670286,
+            "10": -5.492183480167029,
+            "20": -15.492183480167029
+          },
+          "by_sector": {
+            "NIFTY AUTO": {
+              "predictions": 153,
+              "accuracy": 0.5032679738562091,
+              "mean_net_bp": -5.956690473821296
+            },
+            "NIFTY BANK": {
+              "predictions": 195,
+              "accuracy": 0.49743589743589745,
+              "mean_net_bp": -7.75495996351895
+            },
+            "NIFTY FMCG": {
+              "predictions": 99,
+              "accuracy": 0.5454545454545454,
+              "mean_net_bp": -9.051744603379158
+            },
+            "NIFTY IT": {
+              "predictions": 189,
+              "accuracy": 0.5767195767195767,
+              "mean_net_bp": -3.0415418648523915
+            },
+            "NIFTY METAL": {
+              "predictions": 177,
+              "accuracy": 0.5480225988700564,
+              "mean_net_bp": -0.4729809472415932
+            },
+            "NIFTY PHARMA": {
+              "predictions": 94,
+              "accuracy": 0.46808510638297873,
+              "mean_net_bp": -10.671572609332346
+            }
+          },
+          "by_month": {
+            "2026-03": {
+              "predictions": 907,
+              "accuracy": 0.5270121278941565,
+              "mean_net_bp": -5.492183480167029
+            }
+          }
+        },
+        {
+          "month": "2026-04",
+          "predictions": 547,
+          "eligible_rows": 3080,
+          "actionable_bar_coverage": 0.1775974025974026,
+          "sectors": 6,
+          "stocks": 14,
+          "days": 20,
+          "accuracy": 0.45521023765996343,
+          "material_precision": 0.3382084095063985,
+          "mean_gross_bp": -2.534347597022366,
+          "mean_net_bp": -12.534347597022366,
+          "bullish_predictions": 191,
+          "bearish_predictions": 356,
+          "bullish_accuracy": 0.46596858638743455,
+          "bearish_accuracy": 0.449438202247191,
+          "majority_accuracy_same_entries": 0.5027422303473492,
+          "momentum_accuracy_same_entries": 0.4643510054844607,
+          "net_bp_at_costs": {
+            "0": -2.534347597022366,
+            "5": -7.534347597022366,
+            "10": -12.534347597022366,
+            "20": -22.534347597022368
+          },
+          "by_sector": {
+            "NIFTY AUTO": {
+              "predictions": 89,
+              "accuracy": 0.42696629213483145,
+              "mean_net_bp": -12.717549675716112
+            },
+            "NIFTY BANK": {
+              "predictions": 115,
+              "accuracy": 0.40869565217391307,
+              "mean_net_bp": -13.704461761329188
+            },
+            "NIFTY FMCG": {
+              "predictions": 65,
+              "accuracy": 0.5076923076923077,
+              "mean_net_bp": -3.6853111232470446
+            },
+            "NIFTY IT": {
+              "predictions": 110,
+              "accuracy": 0.4636363636363636,
+              "mean_net_bp": -13.502113137856256
+            },
+            "NIFTY METAL": {
+              "predictions": 83,
+              "accuracy": 0.4578313253012048,
+              "mean_net_bp": -16.301246576090247
+            },
+            "NIFTY PHARMA": {
+              "predictions": 85,
+              "accuracy": 0.49411764705882355,
+              "mean_net_bp": -12.595670328104783
+            }
+          },
+          "by_month": {
+            "2026-04": {
+              "predictions": 547,
+              "accuracy": 0.45521023765996343,
+              "mean_net_bp": -12.534347597022366
+            }
+          }
+        },
+        {
+          "month": "2026-05",
+          "predictions": 303,
+          "eligible_rows": 2926,
+          "actionable_bar_coverage": 0.10355434039644566,
+          "sectors": 6,
+          "stocks": 14,
+          "days": 19,
+          "accuracy": 0.5412541254125413,
+          "material_precision": 0.39603960396039606,
+          "mean_gross_bp": -0.2938230799598206,
+          "mean_net_bp": -10.29382307995982,
+          "bullish_predictions": 127,
+          "bearish_predictions": 176,
+          "bullish_accuracy": 0.5039370078740157,
+          "bearish_accuracy": 0.5681818181818182,
+          "majority_accuracy_same_entries": 0.5214521452145214,
+          "momentum_accuracy_same_entries": 0.44224422442244227,
+          "net_bp_at_costs": {
+            "0": -0.2938230799598206,
+            "5": -5.293823079959821,
+            "10": -10.29382307995982,
+            "20": -20.29382307995982
+          },
+          "by_sector": {
+            "NIFTY AUTO": {
+              "predictions": 63,
+              "accuracy": 0.5238095238095238,
+              "mean_net_bp": -12.110244578554854
+            },
+            "NIFTY BANK": {
+              "predictions": 48,
+              "accuracy": 0.3958333333333333,
+              "mean_net_bp": -24.692720530744253
+            },
+            "NIFTY FMCG": {
+              "predictions": 28,
+              "accuracy": 0.4642857142857143,
+              "mean_net_bp": -15.03341823132715
+            },
+            "NIFTY IT": {
+              "predictions": 55,
+              "accuracy": 0.6363636363636364,
+              "mean_net_bp": -1.9871080270038404
+            },
+            "NIFTY METAL": {
+              "predictions": 59,
+              "accuracy": 0.5084745762711864,
+              "mean_net_bp": -11.056640896259049
+            },
+            "NIFTY PHARMA": {
+              "predictions": 50,
+              "accuracy": 0.68,
+              "mean_net_bp": 0.2347213107701895
+            }
+          },
+          "by_month": {
+            "2026-05": {
+              "predictions": 303,
+              "accuracy": 0.5412541254125413,
+              "mean_net_bp": -10.29382307995982
+            }
+          }
+        }
+      ],
+      "positive_development_folds": 0,
+      "selection_passed": false
+    },
+    "training_rows": 30867,
+    "training_end": "2026-07-31",
+    "training_stocks": [
+      "BAJAJ-AUTO",
+      "CIPLA",
+      "HDFCBANK",
+      "HINDUNILVR",
+      "ICICIBANK",
+      "INFY",
+      "ITC",
+      "JSWSTEEL",
+      "M&M",
+      "SBIN",
+      "SUNPHARMA",
+      "TATASTEEL",
+      "TCS",
+      "WIPRO"
+    ],
+    "feature_names": [
+      "stock_return_5m_bp",
+      "stock_return_15m_bp",
+      "stock_return_30m_bp",
+      "stock_return_60m_bp",
+      "market_return_5m_bp",
+      "market_return_15m_bp",
+      "market_return_30m_bp",
+      "market_return_60m_bp",
+      "sector_return_5m_bp",
+      "sector_return_15m_bp",
+      "sector_return_30m_bp",
+      "sector_return_60m_bp",
+      "stock_minus_market_15m_bp",
+      "stock_minus_sector_15m_bp",
+      "stock_minus_market_30m_bp",
+      "stock_minus_sector_30m_bp",
+      "stock_minus_market_60m_bp",
+      "stock_minus_sector_60m_bp",
+      "ema8_gap_bp",
+      "ema21_gap_bp",
+      "ema8_21_gap_bp",
+      "ema8_slope_15m_bp",
+      "stock_atr_bp",
+      "market_atr_bp",
+      "stock_session_return_bp",
+      "market_session_return_bp",
+      "sector_NIFTY_IT",
+      "sector_NIFTY_BANK",
+      "sector_NIFTY_PHARMA",
+      "sector_NIFTY_AUTO",
+      "sector_NIFTY_FMCG",
+      "sector_NIFTY_METAL",
+      "rrs",
+      "rrv",
+      "rel_volatility",
+      "rrs_change",
+      "sector_rrs",
+      "sector_state",
+      "market_regime",
+      "market_efficiency",
+      "market_ready",
+      "relative_own_volume",
+      "candle_body_fraction",
+      "candle_close_position",
+      "decision_minutes_after_open",
+      "rrs8_value",
+      "rrs8_direction",
+      "rrs8_run",
+      "rrs12_value",
+      "rrs12_direction",
+      "rrs12_run",
+      "rrs20_value",
+      "rrs20_direction",
+      "rrs20_run"
+    ],
+    "source_sha256": {
+      "universe.py": "2e46170630ef2750c0d6a40d84a269a2f52a46aac0decb23b3982516db82f315",
+      "tune.py": "44e37bfef552bbc27fd92f1a5532f2aacccee64f9a82c9d540a7e92e3c24e7be",
+      "models.py": "ec609553d132b4a4f272ffaa9608e433acd1c2dcc5a796b98d4f451c254ce1d1",
+      "fetch.py": "922ad306bf966526091781af678a2334a9fc6486a23abf6180b5a82917a8365a",
+      "dataset.py": "5aab8fc21c7122672fa643c552a30b6c9e73edb78825fc590f63ed189388e85d",
+      "metrics.py": "c3c24d70cdc891c4ea5090c66a9a24bb9d0699044ab296c3528efdd9aec6b044",
+      "__init__.py": "a4e17e40ee92badc69847fdc38a6fef96b22ca8b631bc67582f3e3b783987a64"
+    },
+    "design_sha256": "0ef64dcc6de770c6b94ca96d335108c05e066a5c27299b7f9d7c6f0d6e660e4a",
+    "model_sha256": "840c34538d54fdb68b15df45f2d88f0e55e97411dc99eb71861b8b044188e30a",
+    "test_data_sha256": "31db5bc3f32db4a4b531c69e632b839a496c6265e0df4ffefef10de86f395778",
+    "candidate_count": 45,
+    "threshold_search_count": 78,
+    "cold_stocks": [
+      "AXISBANK",
+      "DRREDDY",
+      "HCLTECH",
+      "HINDALCO",
+      "MARUTI",
+      "NESTLEIND"
+    ]
+  },
+  "results": [
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 30,
+      "rule": "tuned_candidate",
+      "predictions": 783,
+      "eligible_rows": 56335,
+      "actionable_bar_coverage": 0.025508121061507055,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 48,
+      "accuracy": 0.5491698595146871,
+      "material_precision": 0.41379310344827586,
+      "mean_gross_bp": 2.0854349794932223,
+      "mean_net_bp": -7.914565020506778,
+      "bullish_predictions": 323,
+      "bearish_predictions": 460,
+      "bullish_accuracy": 0.5108359133126935,
+      "bearish_accuracy": 0.5760869565217391,
+      "majority_accuracy_same_entries": 0.5185185185185185,
+      "momentum_accuracy_same_entries": 0.4661558109833972,
+      "net_bp_at_costs": {
+        "0": 2.0854349794932223,
+        "5": -2.9145650205067777,
+        "10": -7.914565020506778,
+        "20": -17.914565020506778
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 120,
+          "accuracy": 0.5666666666666667,
+          "mean_net_bp": -8.462482741135924
+        },
+        "NIFTY BANK": {
+          "predictions": 106,
+          "accuracy": 0.5188679245283019,
+          "mean_net_bp": -8.597875385420252
+        },
+        "NIFTY FMCG": {
+          "predictions": 87,
+          "accuracy": 0.5287356321839081,
+          "mean_net_bp": -8.926205527577396
+        },
+        "NIFTY IT": {
+          "predictions": 189,
+          "accuracy": 0.5502645502645502,
+          "mean_net_bp": -7.165536880324222
+        },
+        "NIFTY METAL": {
+          "predictions": 176,
+          "accuracy": 0.5738636363636364,
+          "mean_net_bp": -6.456986770112707
+        },
+        "NIFTY PHARMA": {
+          "predictions": 105,
+          "accuracy": 0.5333333333333333,
+          "mean_net_bp": -9.551768270910493
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 143,
+          "accuracy": 0.5314685314685315,
+          "mean_net_bp": -6.170844436133056
+        },
+        "2026-09": {
+          "predictions": 342,
+          "accuracy": 0.5789473684210527,
+          "mean_net_bp": -4.759396869913498
+        },
+        "2026-10": {
+          "predictions": 298,
+          "accuracy": 0.5234899328859061,
+          "mean_net_bp": -12.37234874892404
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.49541124386601243,
+        0.6085076161944345
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -12.367152759993582,
+        -2.9800719693142255
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.030575677073020485,
+        0.10136818444583838
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.001614177982931673,
+        0.1716372447213567
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -12.277934595486139,
+        -3.6172336199901998
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.036020600708902804,
+        0.08900022225514885
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 30,
+      "rule": "current_rrs",
+      "predictions": 8723,
+      "eligible_rows": 56335,
+      "actionable_bar_coverage": 0.5642673293689536,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.4821735641407773,
+      "material_precision": 0.30356528717184456,
+      "mean_gross_bp": -0.258788751097915,
+      "mean_net_bp": -10.258788751097915,
+      "bullish_predictions": 4443,
+      "bearish_predictions": 4280,
+      "bullish_accuracy": 0.4422687373396354,
+      "bearish_accuracy": 0.5235981308411215,
+      "majority_accuracy_same_entries": 0.5173678780236157,
+      "momentum_accuracy_same_entries": 0.4795368565860369,
+      "net_bp_at_costs": {
+        "0": -0.258788751097915,
+        "5": -5.258788751097915,
+        "10": -10.258788751097915,
+        "20": -20.258788751097914
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 1375,
+          "accuracy": 0.488,
+          "mean_net_bp": -10.861418015087699
+        },
+        "NIFTY BANK": {
+          "predictions": 1828,
+          "accuracy": 0.4912472647702407,
+          "mean_net_bp": -9.439962186188582
+        },
+        "NIFTY FMCG": {
+          "predictions": 1380,
+          "accuracy": 0.47246376811594204,
+          "mean_net_bp": -11.430795467383358
+        },
+        "NIFTY IT": {
+          "predictions": 1373,
+          "accuracy": 0.4865258557902403,
+          "mean_net_bp": -10.107820842775817
+        },
+        "NIFTY METAL": {
+          "predictions": 1382,
+          "accuracy": 0.48842257597684513,
+          "mean_net_bp": -9.153137881003818
+        },
+        "NIFTY PHARMA": {
+          "predictions": 1385,
+          "accuracy": 0.4635379061371841,
+          "mean_net_bp": -10.82638362098288
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 3773,
+          "accuracy": 0.4821097270076862,
+          "mean_net_bp": -10.487888668831774
+        },
+        "2026-09": {
+          "predictions": 3688,
+          "accuracy": 0.4837310195227766,
+          "mean_net_bp": -9.917104001007903
+        },
+        "2026-10": {
+          "predictions": 1262,
+          "accuracy": 0.47781299524564186,
+          "mean_net_bp": -10.572369867359495
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4693442865407103,
+        0.49556766034389993
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.949921134159373,
+        -9.565320077171407
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.05399717033060319,
+        -0.016162537239010257
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.015529492014875818,
+        0.022750385746695037
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.862738056423114,
+        -9.656667048484222
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.04717436724265895,
+        -0.023031058355329533
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 30,
+      "rule": "15min_momentum",
+      "predictions": 9937,
+      "eligible_rows": 56335,
+      "actionable_bar_coverage": 0.9740658560397621,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.4869678977558619,
+      "material_precision": 0.3120660159001711,
+      "mean_gross_bp": 0.3123447521025687,
+      "mean_net_bp": -9.687655247897432,
+      "bullish_predictions": 4671,
+      "bearish_predictions": 5266,
+      "bullish_accuracy": 0.43352601156069365,
+      "bearish_accuracy": 0.5343714394227117,
+      "majority_accuracy_same_entries": 0.5197745798530744,
+      "momentum_accuracy_same_entries": 0.4869678977558619,
+      "net_bp_at_costs": {
+        "0": 0.3123447521025687,
+        "5": -4.687655247897431,
+        "10": -9.687655247897432,
+        "20": -19.687655247897432
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 1570,
+          "accuracy": 0.478343949044586,
+          "mean_net_bp": -9.571565608592081
+        },
+        "NIFTY BANK": {
+          "predictions": 2094,
+          "accuracy": 0.4813753581661891,
+          "mean_net_bp": -9.575452209158746
+        },
+        "NIFTY FMCG": {
+          "predictions": 1557,
+          "accuracy": 0.4861913937058446,
+          "mean_net_bp": -10.04136266186533
+        },
+        "NIFTY IT": {
+          "predictions": 1570,
+          "accuracy": 0.478343949044586,
+          "mean_net_bp": -10.104108349153096
+        },
+        "NIFTY METAL": {
+          "predictions": 1575,
+          "accuracy": 0.5041269841269841,
+          "mean_net_bp": -8.45779576183196
+        },
+        "NIFTY PHARMA": {
+          "predictions": 1571,
+          "accuracy": 0.4952259707192871,
+          "mean_net_bp": -10.419474964550465
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 4282,
+          "accuracy": 0.47758056982718355,
+          "mean_net_bp": -9.974805483965563
+        },
+        "2026-09": {
+          "predictions": 4210,
+          "accuracy": 0.4850356294536817,
+          "mean_net_bp": -10.07884037564475
+        },
+        "2026-10": {
+          "predictions": 1445,
+          "accuracy": 0.5204152249134948,
+          "mean_net_bp": -7.697020854361134
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4753614886858651,
+        0.4981973235380378
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.384726926640186,
+        -9.024965350901402
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.048259982266345924,
+        -0.016449650701301114
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.337660015942829,
+        -9.002497264667142
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.04815232484939227,
+        -0.016660150704742024
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 30,
+      "rule": "ema8_21",
+      "predictions": 10146,
+      "eligible_rows": 56335,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.49211511925882123,
+      "material_precision": 0.31559235166568106,
+      "mean_gross_bp": -0.16406882699326358,
+      "mean_net_bp": -10.164068826993265,
+      "bullish_predictions": 4314,
+      "bearish_predictions": 5832,
+      "bullish_accuracy": 0.437413073713491,
+      "bearish_accuracy": 0.5325788751714677,
+      "majority_accuracy_same_entries": 0.5188251527695643,
+      "momentum_accuracy_same_entries": 0.4744726986004337,
+      "net_bp_at_costs": {
+        "0": -0.16406882699326358,
+        "5": -5.1640688269932635,
+        "10": -10.164068826993264,
+        "20": -20.164068826993265
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 1602,
+          "accuracy": 0.4912609238451935,
+          "mean_net_bp": -9.933564094069633
+        },
+        "NIFTY BANK": {
+          "predictions": 2136,
+          "accuracy": 0.4897003745318352,
+          "mean_net_bp": -10.497695450802558
+        },
+        "NIFTY FMCG": {
+          "predictions": 1602,
+          "accuracy": 0.4993757802746567,
+          "mean_net_bp": -9.683987790544483
+        },
+        "NIFTY IT": {
+          "predictions": 1602,
+          "accuracy": 0.5006242197253433,
+          "mean_net_bp": -10.105847892077417
+        },
+        "NIFTY METAL": {
+          "predictions": 1602,
+          "accuracy": 0.4975031210986267,
+          "mean_net_bp": -9.810937142512007
+        },
+        "NIFTY PHARMA": {
+          "predictions": 1602,
+          "accuracy": 0.47503121098626716,
+          "mean_net_bp": -10.841171717350386
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 4389,
+          "accuracy": 0.48712690817953974,
+          "mean_net_bp": -10.747346569787759
+        },
+        "2026-09": {
+          "predictions": 4294,
+          "accuracy": 0.4878900791802515,
+          "mean_net_bp": -10.148863985376211
+        },
+        "2026-10": {
+          "predictions": 1463,
+          "accuracy": 0.5194805194805194,
+          "mean_net_bp": -8.458862796083208
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.48118643230966723,
+        0.5039281583195577
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.850241988988058,
+        -9.438295551882632
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.04156774851088761,
+        -0.01185876610293092
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.004122227929180011,
+        0.03224861722134997
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.701908554909432,
+        -9.521570222337997
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.04071867981642418,
+        -0.013380281099716288
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 30,
+      "rule": "training_majority",
+      "predictions": 10146,
+      "eligible_rows": 56335,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.5188251527695643,
+      "material_precision": 0.3341218214074512,
+      "mean_gross_bp": 1.150951720555468,
+      "mean_net_bp": -8.849048279444533,
+      "bullish_predictions": 2670,
+      "bearish_predictions": 7476,
+      "bullish_accuracy": 0.45617977528089887,
+      "bearish_accuracy": 0.5411985018726592,
+      "majority_accuracy_same_entries": 0.5188251527695643,
+      "momentum_accuracy_same_entries": 0.4744726986004337,
+      "net_bp_at_costs": {
+        "0": 1.150951720555468,
+        "5": -3.849048279444532,
+        "10": -8.849048279444531,
+        "20": -18.84904827944453
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 1602,
+          "accuracy": 0.5093632958801498,
+          "mean_net_bp": -9.211868744382013
+        },
+        "NIFTY BANK": {
+          "predictions": 2136,
+          "accuracy": 0.5304307116104869,
+          "mean_net_bp": -9.073391400150465
+        },
+        "NIFTY FMCG": {
+          "predictions": 1602,
+          "accuracy": 0.5362047440699126,
+          "mean_net_bp": -7.8451936766690675
+        },
+        "NIFTY IT": {
+          "predictions": 1602,
+          "accuracy": 0.5649188514357054,
+          "mean_net_bp": -6.603274114721571
+        },
+        "NIFTY METAL": {
+          "predictions": 1602,
+          "accuracy": 0.4975031210986267,
+          "mean_net_bp": -10.035635156489695
+        },
+        "NIFTY PHARMA": {
+          "predictions": 1602,
+          "accuracy": 0.4706616729088639,
+          "mean_net_bp": -10.25014554401907
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 4389,
+          "accuracy": 0.5156071998177262,
+          "mean_net_bp": -9.131190753974426
+        },
+        "2026-09": {
+          "predictions": 4294,
+          "accuracy": 0.5151374010246856,
+          "mean_net_bp": -8.654334144126828
+        },
+        "2026-10": {
+          "predictions": 1463,
+          "accuracy": 0.5393028024606972,
+          "mean_net_bp": -8.574119486787332
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.504785403483368,
+        0.5319767724624093
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -9.526382828038306,
+        -8.204241259219641
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.027653383955155333,
+        0.06034784031299709
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -9.26829202873138,
+        -8.366481428364134
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "group": "cold_stocks_never_trained",
+      "horizon_minutes": 30,
+      "rule": "tuned_candidate",
+      "predictions": 317,
+      "eligible_rows": 17790,
+      "actionable_bar_coverage": 0.031871838111298484,
+      "sectors": 6,
+      "stocks": 6,
+      "days": 46,
+      "accuracy": 0.5299684542586751,
+      "material_precision": 0.41009463722397477,
+      "mean_gross_bp": 1.973231013498128,
+      "mean_net_bp": -8.026768986501873,
+      "bullish_predictions": 117,
+      "bearish_predictions": 200,
+      "bullish_accuracy": 0.48717948717948717,
+      "bearish_accuracy": 0.555,
+      "majority_accuracy_same_entries": 0.5236593059936908,
+      "momentum_accuracy_same_entries": 0.4921135646687697,
+      "net_bp_at_costs": {
+        "0": 1.973231013498128,
+        "5": -3.026768986501872,
+        "10": -8.026768986501873,
+        "20": -18.02676898650187
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 37,
+          "accuracy": 0.6216216216216216,
+          "mean_net_bp": -2.8220565550797225
+        },
+        "NIFTY BANK": {
+          "predictions": 40,
+          "accuracy": 0.575,
+          "mean_net_bp": -0.6962339508718906
+        },
+        "NIFTY FMCG": {
+          "predictions": 37,
+          "accuracy": 0.4594594594594595,
+          "mean_net_bp": -14.593013672258886
+        },
+        "NIFTY IT": {
+          "predictions": 92,
+          "accuracy": 0.5,
+          "mean_net_bp": -8.548585457129768
+        },
+        "NIFTY METAL": {
+          "predictions": 59,
+          "accuracy": 0.6101694915254238,
+          "mean_net_bp": -2.080246014386773
+        },
+        "NIFTY PHARMA": {
+          "predictions": 52,
+          "accuracy": 0.4423076923076923,
+          "mean_net_bp": -18.52066221865252
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 65,
+          "accuracy": 0.5384615384615384,
+          "mean_net_bp": -2.56060408589837
+        },
+        "2026-09": {
+          "predictions": 145,
+          "accuracy": 0.5241379310344828,
+          "mean_net_bp": -7.812800084716493
+        },
+        "2026-10": {
+          "predictions": 107,
+          "accuracy": 0.5327102803738317,
+          "mean_net_bp": -11.637294307044938
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4589519315188762,
+        0.606063200498132
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -13.06575103596122,
+        -2.3850439934126997
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.07107747660011902,
+        0.09571621248812184
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.07006795475363739,
+        0.1600087463556851
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -12.153455079496169,
+        -3.755807240615471
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.07692307692307693,
+        0.07886642869002157
+      ]
+    },
+    {
+      "group": "cold_stocks_never_trained",
+      "horizon_minutes": 30,
+      "rule": "current_rrs",
+      "predictions": 2758,
+      "eligible_rows": 17790,
+      "actionable_bar_coverage": 0.5630129286115796,
+      "sectors": 6,
+      "stocks": 6,
+      "days": 49,
+      "accuracy": 0.485859318346628,
+      "material_precision": 0.3150833937635968,
+      "mean_gross_bp": -0.3391464959249723,
+      "mean_net_bp": -10.339146495924972,
+      "bullish_predictions": 1419,
+      "bearish_predictions": 1339,
+      "bullish_accuracy": 0.44679351656095845,
+      "bearish_accuracy": 0.5272591486183719,
+      "majority_accuracy_same_entries": 0.528281363306744,
+      "momentum_accuracy_same_entries": 0.47353154459753444,
+      "net_bp_at_costs": {
+        "0": -0.3391464959249723,
+        "5": -5.339146495924973,
+        "10": -10.339146495924972,
+        "20": -20.33914649592497
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 465,
+          "accuracy": 0.4860215053763441,
+          "mean_net_bp": -10.753771829679094
+        },
+        "NIFTY BANK": {
+          "predictions": 461,
+          "accuracy": 0.4685466377440347,
+          "mean_net_bp": -9.963522935179945
+        },
+        "NIFTY FMCG": {
+          "predictions": 462,
+          "accuracy": 0.49134199134199136,
+          "mean_net_bp": -13.327396713030238
+        },
+        "NIFTY IT": {
+          "predictions": 454,
+          "accuracy": 0.486784140969163,
+          "mean_net_bp": -9.598187076264109
+        },
+        "NIFTY METAL": {
+          "predictions": 455,
+          "accuracy": 0.5010989010989011,
+          "mean_net_bp": -8.818814790264682
+        },
+        "NIFTY PHARMA": {
+          "predictions": 461,
+          "accuracy": 0.48156182212581344,
+          "mean_net_bp": -9.532067501579252
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1197,
+          "accuracy": 0.49958228905597324,
+          "mean_net_bp": -10.400808038381165
+        },
+        "2026-09": {
+          "predictions": 1163,
+          "accuracy": 0.47463456577815993,
+          "mean_net_bp": -9.84379980114583
+        },
+        "2026-10": {
+          "predictions": 398,
+          "accuracy": 0.47738693467336685,
+          "mean_net_bp": -11.601154887151303
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4635711103899877,
+        0.5082204878080148
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -11.677505328930808,
+        -9.11851242960909
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.07229490544360477,
+        -0.012573779327650917
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.018231475131278596,
+        0.041263675853523425
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -11.537678232745726,
+        -9.02918656695884
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.064749124310725,
+        -0.018369289487514946
+      ]
+    },
+    {
+      "group": "cold_stocks_never_trained",
+      "horizon_minutes": 30,
+      "rule": "15min_momentum",
+      "predictions": 3147,
+      "eligible_rows": 17790,
+      "actionable_bar_coverage": 0.9764474423833615,
+      "sectors": 6,
+      "stocks": 6,
+      "days": 49,
+      "accuracy": 0.5011121703209406,
+      "material_precision": 0.3317445185891325,
+      "mean_gross_bp": 0.8850490559643356,
+      "mean_net_bp": -9.114950944035664,
+      "bullish_predictions": 1509,
+      "bearish_predictions": 1638,
+      "bullish_accuracy": 0.4532803180914513,
+      "bearish_accuracy": 0.5451770451770451,
+      "majority_accuracy_same_entries": 0.5338417540514776,
+      "momentum_accuracy_same_entries": 0.5011121703209406,
+      "net_bp_at_costs": {
+        "0": 0.8850490559643356,
+        "5": -4.114950944035664,
+        "10": -9.114950944035664,
+        "20": -19.114950944035666
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 522,
+          "accuracy": 0.5019157088122606,
+          "mean_net_bp": -8.660448640751444
+        },
+        "NIFTY BANK": {
+          "predictions": 525,
+          "accuracy": 0.518095238095238,
+          "mean_net_bp": -8.522914429114198
+        },
+        "NIFTY FMCG": {
+          "predictions": 524,
+          "accuracy": 0.5057251908396947,
+          "mean_net_bp": -8.957889776655698
+        },
+        "NIFTY IT": {
+          "predictions": 527,
+          "accuracy": 0.48956356736242884,
+          "mean_net_bp": -9.524356617745411
+        },
+        "NIFTY METAL": {
+          "predictions": 528,
+          "accuracy": 0.5018939393939394,
+          "mean_net_bp": -8.826624722489434
+        },
+        "NIFTY PHARMA": {
+          "predictions": 521,
+          "accuracy": 0.4894433781190019,
+          "mean_net_bp": -10.202952631725891
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1360,
+          "accuracy": 0.4963235294117647,
+          "mean_net_bp": -9.692899648774532
+        },
+        "2026-09": {
+          "predictions": 1334,
+          "accuracy": 0.49025487256371814,
+          "mean_net_bp": -9.178893440544345
+        },
+        "2026-10": {
+          "predictions": 453,
+          "accuracy": 0.5474613686534217,
+          "mean_net_bp": -7.19153035068591
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.48355384440227706,
+        0.5179877527624335
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.16991330305427,
+        -8.140297347530648
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.05455740960361781,
+        -0.011880589101202597
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -9.880279662151654,
+        -8.374401143554826
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.05150338971423799,
+        -0.012832646380762326
+      ]
+    },
+    {
+      "group": "cold_stocks_never_trained",
+      "horizon_minutes": 30,
+      "rule": "ema8_21",
+      "predictions": 3204,
+      "eligible_rows": 17790,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 6,
+      "days": 49,
+      "accuracy": 0.49063670411985016,
+      "material_precision": 0.3292759051186018,
+      "mean_gross_bp": -0.4706189743994708,
+      "mean_net_bp": -10.470618974399471,
+      "bullish_predictions": 1443,
+      "bearish_predictions": 1761,
+      "bullish_accuracy": 0.4407484407484408,
+      "bearish_accuracy": 0.5315161839863713,
+      "majority_accuracy_same_entries": 0.5308988764044944,
+      "momentum_accuracy_same_entries": 0.4865792759051186,
+      "net_bp_at_costs": {
+        "0": -0.4706189743994708,
+        "5": -5.47061897439947,
+        "10": -10.470618974399471,
+        "20": -20.47061897439947
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 534,
+          "accuracy": 0.4887640449438202,
+          "mean_net_bp": -9.016097254193534
+        },
+        "NIFTY BANK": {
+          "predictions": 534,
+          "accuracy": 0.4756554307116105,
+          "mean_net_bp": -11.533708949122392
+        },
+        "NIFTY FMCG": {
+          "predictions": 534,
+          "accuracy": 0.5205992509363296,
+          "mean_net_bp": -11.233294622908348
+        },
+        "NIFTY IT": {
+          "predictions": 534,
+          "accuracy": 0.5093632958801498,
+          "mean_net_bp": -9.655297996434074
+        },
+        "NIFTY METAL": {
+          "predictions": 534,
+          "accuracy": 0.4850187265917603,
+          "mean_net_bp": -10.619389782427708
+        },
+        "NIFTY PHARMA": {
+          "predictions": 534,
+          "accuracy": 0.46441947565543074,
+          "mean_net_bp": -10.765925241310768
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1386,
+          "accuracy": 0.48917748917748916,
+          "mean_net_bp": -11.6288847213259
+        },
+        "2026-09": {
+          "predictions": 1356,
+          "accuracy": 0.49041297935103245,
+          "mean_net_bp": -9.902699454757176
+        },
+        "2026-10": {
+          "predictions": 462,
+          "accuracy": 0.49567099567099565,
+          "mean_net_bp": -8.6627024016612
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4752904144209982,
+        0.5064935064935064
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -11.55697150295901,
+        -9.435064253551632
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.05990191024278705,
+        -0.018306470315398896
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.019424982911825015,
+        0.027520098948670378
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -11.327388902306936,
+        -9.713395542857882
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.05430982377438649,
+        -0.026900164219586378
+      ]
+    },
+    {
+      "group": "cold_stocks_never_trained",
+      "horizon_minutes": 30,
+      "rule": "training_majority",
+      "predictions": 3204,
+      "eligible_rows": 17790,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 6,
+      "days": 49,
+      "accuracy": 0.5308988764044944,
+      "material_precision": 0.3564294631710362,
+      "mean_gross_bp": 1.9466952058374503,
+      "mean_net_bp": -8.05330479416255,
+      "bullish_predictions": 534,
+      "bearish_predictions": 2670,
+      "bullish_accuracy": 0.4737827715355805,
+      "bearish_accuracy": 0.5423220973782772,
+      "majority_accuracy_same_entries": 0.5308988764044944,
+      "momentum_accuracy_same_entries": 0.4865792759051186,
+      "net_bp_at_costs": {
+        "0": 1.9466952058374503,
+        "5": -3.0533047941625497,
+        "10": -8.05330479416255,
+        "20": -18.05330479416255
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 534,
+          "accuracy": 0.5617977528089888,
+          "mean_net_bp": -7.263110029966149
+        },
+        "NIFTY BANK": {
+          "predictions": 534,
+          "accuracy": 0.5,
+          "mean_net_bp": -10.702887085262647
+        },
+        "NIFTY FMCG": {
+          "predictions": 534,
+          "accuracy": 0.550561797752809,
+          "mean_net_bp": -6.560248025762362
+        },
+        "NIFTY IT": {
+          "predictions": 534,
+          "accuracy": 0.5749063670411985,
+          "mean_net_bp": -5.954904576868272
+        },
+        "NIFTY METAL": {
+          "predictions": 534,
+          "accuracy": 0.5243445692883895,
+          "mean_net_bp": -9.799616469464883
+        },
+        "NIFTY PHARMA": {
+          "predictions": 534,
+          "accuracy": 0.4737827715355805,
+          "mean_net_bp": -8.039062577650986
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1386,
+          "accuracy": 0.525974025974026,
+          "mean_net_bp": -8.45084649392693
+        },
+        "2026-09": {
+          "predictions": 1356,
+          "accuracy": 0.5302359882005899,
+          "mean_net_bp": -7.642097914950979
+        },
+        "2026-10": {
+          "predictions": 462,
+          "accuracy": 0.5476190476190477,
+          "mean_net_bp": -8.067598587100777
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.5143557144055007,
+        0.5469527363184079
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -9.07182243557208,
+        -7.02399094695255
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.021922704488493962,
+        0.06785779170640867
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -8.777035428634427,
+        -7.2190141847801765
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 15,
+      "rule": "tuned_candidate",
+      "predictions": 1074,
+      "eligible_rows": 59128,
+      "actionable_bar_coverage": 0.028176160194831552,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.5484171322160148,
+      "material_precision": 0.3761638733705773,
+      "mean_gross_bp": 3.598855349192496,
+      "mean_net_bp": -6.401144650807504,
+      "bullish_predictions": 443,
+      "bearish_predictions": 631,
+      "bullish_accuracy": 0.5304740406320542,
+      "bearish_accuracy": 0.561014263074485,
+      "majority_accuracy_same_entries": 0.505586592178771,
+      "momentum_accuracy_same_entries": 0.4543761638733706,
+      "net_bp_at_costs": {
+        "0": 3.598855349192496,
+        "5": -1.4011446508075038,
+        "10": -6.401144650807504,
+        "20": -16.401144650807503
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 171,
+          "accuracy": 0.5321637426900585,
+          "mean_net_bp": -7.082066694244405
+        },
+        "NIFTY BANK": {
+          "predictions": 151,
+          "accuracy": 0.543046357615894,
+          "mean_net_bp": -7.422361038589872
+        },
+        "NIFTY FMCG": {
+          "predictions": 126,
+          "accuracy": 0.49206349206349204,
+          "mean_net_bp": -10.5701752603563
+        },
+        "NIFTY IT": {
+          "predictions": 247,
+          "accuracy": 0.5101214574898786,
+          "mean_net_bp": -5.3891641826298375
+        },
+        "NIFTY METAL": {
+          "predictions": 239,
+          "accuracy": 0.606694560669456,
+          "mean_net_bp": -4.127041552017976
+        },
+        "NIFTY PHARMA": {
+          "predictions": 140,
+          "accuracy": 0.5928571428571429,
+          "mean_net_bp": -6.383506189840253
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 179,
+          "accuracy": 0.5139664804469274,
+          "mean_net_bp": -8.969699622108456
+        },
+        "2026-09": {
+          "predictions": 450,
+          "accuracy": 0.5688888888888889,
+          "mean_net_bp": -4.072300170312256
+        },
+        "2026-10": {
+          "predictions": 445,
+          "accuracy": 0.5415730337078651,
+          "mean_net_bp": -7.722961901054677
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4968075440446613,
+        0.6064896648170028
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -9.171366427633318,
+        -3.3107132907265773
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.02084080188679245,
+        0.12150793696569757
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.011845387901504386,
+        0.18096058511165003
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -8.872530506384914,
+        -3.4809008809264403
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.011231333764318285,
+        0.10347515325420632
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 15,
+      "rule": "current_rrs",
+      "predictions": 16027,
+      "eligible_rows": 59128,
+      "actionable_bar_coverage": 0.5644872141794074,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.4826230735633618,
+      "material_precision": 0.23847257752542583,
+      "mean_gross_bp": -0.13456477723481244,
+      "mean_net_bp": -10.134564777234813,
+      "bullish_predictions": 8112,
+      "bearish_predictions": 7915,
+      "bullish_accuracy": 0.4467455621301775,
+      "bearish_accuracy": 0.5193935565382186,
+      "majority_accuracy_same_entries": 0.5163786110937792,
+      "momentum_accuracy_same_entries": 0.4713920259561989,
+      "net_bp_at_costs": {
+        "0": -0.13456477723481244,
+        "5": -5.134564777234813,
+        "10": -10.134564777234813,
+        "20": -20.13456477723481
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 2535,
+          "accuracy": 0.4788954635108481,
+          "mean_net_bp": -9.97787626176216
+        },
+        "NIFTY BANK": {
+          "predictions": 3383,
+          "accuracy": 0.48625480342890925,
+          "mean_net_bp": -9.73319518653949
+        },
+        "NIFTY FMCG": {
+          "predictions": 2539,
+          "accuracy": 0.4619929105947223,
+          "mean_net_bp": -10.963235713252923
+        },
+        "NIFTY IT": {
+          "predictions": 2531,
+          "accuracy": 0.4847886210983801,
+          "mean_net_bp": -10.348096798734327
+        },
+        "NIFTY METAL": {
+          "predictions": 2519,
+          "accuracy": 0.5129019452163557,
+          "mean_net_bp": -9.383653592892271
+        },
+        "NIFTY PHARMA": {
+          "predictions": 2520,
+          "accuracy": 0.46984126984126984,
+          "mean_net_bp": -10.53223895677412
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 6942,
+          "accuracy": 0.48199366176894265,
+          "mean_net_bp": -10.17628453313101
+        },
+        "2026-09": {
+          "predictions": 6783,
+          "accuracy": 0.4789915966386555,
+          "mean_net_bp": -10.233684990189852
+        },
+        "2026-10": {
+          "predictions": 2302,
+          "accuracy": 0.4952215464813206,
+          "mean_net_bp": -9.716688604382751
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.47457489690225774,
+        0.4904290787958936
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.464695405151309,
+        -9.792150635029182
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.045312884601987735,
+        -0.021838509621134507
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.001613942422731821,
+        0.023486266951800117
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.45502539652984,
+        -9.828898628914434
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.0421161914789963,
+        -0.026054749706220355
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 15,
+      "rule": "15min_momentum",
+      "predictions": 19944,
+      "eligible_rows": 59128,
+      "actionable_bar_coverage": 0.9738871600595319,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.4815483353389491,
+      "material_precision": 0.24042318491776976,
+      "mean_gross_bp": 0.002688869310435236,
+      "mean_net_bp": -9.997311130689564,
+      "bullish_predictions": 9302,
+      "bearish_predictions": 10642,
+      "bullish_accuracy": 0.44528058482046873,
+      "bearish_accuracy": 0.513249389212554,
+      "majority_accuracy_same_entries": 0.5149919775371039,
+      "momentum_accuracy_same_entries": 0.4815483353389491,
+      "net_bp_at_costs": {
+        "0": 0.002688869310435236,
+        "5": -4.997311130689565,
+        "10": -9.997311130689564,
+        "20": -19.997311130689564
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 3149,
+          "accuracy": 0.48269291838678946,
+          "mean_net_bp": -10.112125557359533
+        },
+        "NIFTY BANK": {
+          "predictions": 4196,
+          "accuracy": 0.4775977121067683,
+          "mean_net_bp": -10.123447667335773
+        },
+        "NIFTY FMCG": {
+          "predictions": 3133,
+          "accuracy": 0.47813597191190554,
+          "mean_net_bp": -10.183799610753638
+        },
+        "NIFTY IT": {
+          "predictions": 3150,
+          "accuracy": 0.4812698412698413,
+          "mean_net_bp": -10.238986337329772
+        },
+        "NIFTY METAL": {
+          "predictions": 3158,
+          "accuracy": 0.4813172894236859,
+          "mean_net_bp": -9.61072523551138
+        },
+        "NIFTY PHARMA": {
+          "predictions": 3158,
+          "accuracy": 0.4895503483217226,
+          "mean_net_bp": -9.675738429823223
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 8600,
+          "accuracy": 0.4831395348837209,
+          "mean_net_bp": -9.931447051685211
+        },
+        "2026-09": {
+          "predictions": 8463,
+          "accuracy": 0.4770176060498641,
+          "mean_net_bp": -10.372411568395641
+        },
+        "2026-10": {
+          "predictions": 2881,
+          "accuracy": 0.49010760152724747,
+          "mean_net_bp": -9.092054648610743
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4732414013642876,
+        0.4902001065809784
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.425417369942316,
+        -9.563128004443586
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.045717158121632184,
+        -0.020920143415176725
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.356447946167275,
+        -9.65329391018825
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.04320896375724855,
+        -0.022329044829629767
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 15,
+      "rule": "ema8_21",
+      "predictions": 20330,
+      "eligible_rows": 59128,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.4866207575012297,
+      "material_precision": 0.2425479586817511,
+      "mean_gross_bp": -0.10349222608530165,
+      "mean_net_bp": -10.103492226085303,
+      "bullish_predictions": 8627,
+      "bearish_predictions": 11703,
+      "bullish_accuracy": 0.44696881882462036,
+      "bearish_accuracy": 0.5158506365889088,
+      "majority_accuracy_same_entries": 0.5144121987211018,
+      "momentum_accuracy_same_entries": 0.4695031972454501,
+      "net_bp_at_costs": {
+        "0": -0.10349222608530165,
+        "5": -5.103492226085302,
+        "10": -10.1034922260853,
+        "20": -20.1034922260853
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 3210,
+          "accuracy": 0.49595015576323986,
+          "mean_net_bp": -9.865883302667333
+        },
+        "NIFTY BANK": {
+          "predictions": 4280,
+          "accuracy": 0.48317757009345796,
+          "mean_net_bp": -10.422385198281178
+        },
+        "NIFTY FMCG": {
+          "predictions": 3210,
+          "accuracy": 0.4953271028037383,
+          "mean_net_bp": -9.671552725575976
+        },
+        "NIFTY IT": {
+          "predictions": 3210,
+          "accuracy": 0.4719626168224299,
+          "mean_net_bp": -10.357618152750804
+        },
+        "NIFTY METAL": {
+          "predictions": 3210,
+          "accuracy": 0.502803738317757,
+          "mean_net_bp": -9.579423057225592
+        },
+        "NIFTY PHARMA": {
+          "predictions": 3210,
+          "accuracy": 0.4716510903426791,
+          "mean_net_bp": -10.617793262612302
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 8778,
+          "accuracy": 0.48758259284575073,
+          "mean_net_bp": -10.387308916988884
+        },
+        "2026-09": {
+          "predictions": 8626,
+          "accuracy": 0.48307442615348944,
+          "mean_net_bp": -10.042871105066897
+        },
+        "2026-10": {
+          "predictions": 2926,
+          "accuracy": 0.49419002050580996,
+          "mean_net_bp": -9.43075636728596
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.47993326471839104,
+        0.4934576769937953
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.427024470541275,
+        -9.75880128673757
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.03829707318980056,
+        -0.01674635584733504
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.007811101699967122,
+        0.027244243936289762
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.347933386569654,
+        -9.83101693620415
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.03610427939006394,
+        -0.01956899537906238
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 15,
+      "rule": "training_majority",
+      "predictions": 20330,
+      "eligible_rows": 59128,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.5144121987211018,
+      "material_precision": 0.2615346778160354,
+      "mean_gross_bp": 0.7353238354314334,
+      "mean_net_bp": -9.264676164568566,
+      "bullish_predictions": 3210,
+      "bearish_predictions": 17120,
+      "bullish_accuracy": 0.464797507788162,
+      "bearish_accuracy": 0.523714953271028,
+      "majority_accuracy_same_entries": 0.5144121987211018,
+      "momentum_accuracy_same_entries": 0.4695031972454501,
+      "net_bp_at_costs": {
+        "0": 0.7353238354314334,
+        "5": -4.2646761645685665,
+        "10": -9.264676164568566,
+        "20": -19.264676164568566
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 3210,
+          "accuracy": 0.5012461059190031,
+          "mean_net_bp": -9.542818900255853
+        },
+        "NIFTY BANK": {
+          "predictions": 4280,
+          "accuracy": 0.5289719626168224,
+          "mean_net_bp": -9.49081680001636
+        },
+        "NIFTY FMCG": {
+          "predictions": 3210,
+          "accuracy": 0.5218068535825545,
+          "mean_net_bp": -8.985739481640248
+        },
+        "NIFTY IT": {
+          "predictions": 3210,
+          "accuracy": 0.5292834890965732,
+          "mean_net_bp": -8.317591099727982
+        },
+        "NIFTY METAL": {
+          "predictions": 3210,
+          "accuracy": 0.5261682242990654,
+          "mean_net_bp": -9.254247505632337
+        },
+        "NIFTY PHARMA": {
+          "predictions": 3210,
+          "accuracy": 0.47414330218068534,
+          "mean_net_bp": -9.92146298832269
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 8778,
+          "accuracy": 0.5099111414900889,
+          "mean_net_bp": -9.351292165748761
+        },
+        "2026-09": {
+          "predictions": 8626,
+          "accuracy": 0.5139114305587758,
+          "mean_net_bp": -9.303759612708618
+        },
+        "2026-10": {
+          "predictions": 2926,
+          "accuracy": 0.5293916609706083,
+          "mean_net_bp": -8.889608125602111
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.504878164338237,
+        0.523435702155375
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -9.64036926379352,
+        -8.890224093546177
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.03226070991432068,
+        0.057340902553365984
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -9.52335371658177,
+        -9.007778800974418
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 60,
+      "rule": "tuned_candidate",
+      "predictions": 550,
+      "eligible_rows": 50749,
+      "actionable_bar_coverage": 0.023842834341563382,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 48,
+      "accuracy": 0.5181818181818182,
+      "material_precision": 0.42,
+      "mean_gross_bp": -0.5181069464860153,
+      "mean_net_bp": -10.518106946486014,
+      "bullish_predictions": 252,
+      "bearish_predictions": 298,
+      "bullish_accuracy": 0.46825396825396826,
+      "bearish_accuracy": 0.5604026845637584,
+      "majority_accuracy_same_entries": 0.5781818181818181,
+      "momentum_accuracy_same_entries": 0.43636363636363634,
+      "net_bp_at_costs": {
+        "0": -0.5181069464860153,
+        "5": -5.518106946486015,
+        "10": -10.518106946486014,
+        "20": -20.518106946486014
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 80,
+          "accuracy": 0.5625,
+          "mean_net_bp": -13.790664453346773
+        },
+        "NIFTY BANK": {
+          "predictions": 72,
+          "accuracy": 0.5416666666666666,
+          "mean_net_bp": -8.345684759449787
+        },
+        "NIFTY FMCG": {
+          "predictions": 63,
+          "accuracy": 0.36507936507936506,
+          "mean_net_bp": -26.231643713881944
+        },
+        "NIFTY IT": {
+          "predictions": 136,
+          "accuracy": 0.5147058823529411,
+          "mean_net_bp": -7.262745217964269
+        },
+        "NIFTY METAL": {
+          "predictions": 122,
+          "accuracy": 0.5901639344262295,
+          "mean_net_bp": -2.5657256271388875
+        },
+        "NIFTY PHARMA": {
+          "predictions": 77,
+          "accuracy": 0.4675324675324675,
+          "mean_net_bp": -14.6424796297472
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 116,
+          "accuracy": 0.5689655172413793,
+          "mean_net_bp": -4.54622765895604
+        },
+        "2026-09": {
+          "predictions": 237,
+          "accuracy": 0.5654008438818565,
+          "mean_net_bp": -4.518022841104849
+        },
+        "2026-10": {
+          "predictions": 197,
+          "accuracy": 0.43147208121827413,
+          "mean_net_bp": -21.252918775566286
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4656564641388762,
+        0.5794764917418349
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -17.279034372068807,
+        -2.405881603551845
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.1348138485009897,
+        0.021937134502923936
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.00440913594793996,
+        0.19253288189939763
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -16.31436125361268,
+        -1.6260363394471096
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.1280239449976292,
+        0.03020139326550808
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 60,
+      "rule": "current_rrs",
+      "predictions": 4509,
+      "eligible_rows": 50749,
+      "actionable_bar_coverage": 0.5647993063902736,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.5038811266356177,
+      "material_precision": 0.368152583721446,
+      "mean_gross_bp": 0.9558684522473246,
+      "mean_net_bp": -9.044131547752675,
+      "bullish_predictions": 2350,
+      "bearish_predictions": 2159,
+      "bullish_accuracy": 0.4497872340425532,
+      "bearish_accuracy": 0.5627605372857805,
+      "majority_accuracy_same_entries": 0.5280550011088934,
+      "momentum_accuracy_same_entries": 0.48436460412508314,
+      "net_bp_at_costs": {
+        "0": 0.9558684522473246,
+        "5": -4.044131547752675,
+        "10": -9.044131547752675,
+        "20": -19.044131547752677
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 717,
+          "accuracy": 0.5062761506276151,
+          "mean_net_bp": -9.830322777179067
+        },
+        "NIFTY BANK": {
+          "predictions": 945,
+          "accuracy": 0.5015873015873016,
+          "mean_net_bp": -8.644050032271359
+        },
+        "NIFTY FMCG": {
+          "predictions": 713,
+          "accuracy": 0.5133239831697055,
+          "mean_net_bp": -8.37313327085441
+        },
+        "NIFTY IT": {
+          "predictions": 711,
+          "accuracy": 0.510548523206751,
+          "mean_net_bp": -8.042470348919737
+        },
+        "NIFTY METAL": {
+          "predictions": 713,
+          "accuracy": 0.5063113604488079,
+          "mean_net_bp": -8.038459283561199
+        },
+        "NIFTY PHARMA": {
+          "predictions": 710,
+          "accuracy": 0.4859154929577465,
+          "mean_net_bp": -11.469519053102431
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1952,
+          "accuracy": 0.4989754098360656,
+          "mean_net_bp": -9.969589738398234
+        },
+        "2026-09": {
+          "predictions": 1903,
+          "accuracy": 0.5013137151865475,
+          "mean_net_bp": -8.463788800435829
+        },
+        "2026-10": {
+          "predictions": 654,
+          "accuracy": 0.5259938837920489,
+          "mean_net_bp": -7.970580874975663
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4878336168475487,
+        0.5193424524814008
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.547437606705728,
+        -7.5657248836766575
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.047076968023144254,
+        -0.0015589075236652433
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.005987833114377939,
+        0.04526661025972896
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.505926072760438,
+        -7.670363100534215
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.03964698681795193,
+        -0.010312477308283899
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 60,
+      "rule": "15min_momentum",
+      "predictions": 4617,
+      "eligible_rows": 50749,
+      "actionable_bar_coverage": 0.9747384184910047,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.49664284167208145,
+      "material_precision": 0.3660385531730561,
+      "mean_gross_bp": 0.44833834862624933,
+      "mean_net_bp": -9.55166165137375,
+      "bullish_predictions": 2114,
+      "bearish_predictions": 2503,
+      "bullish_accuracy": 0.43472090823084203,
+      "bearish_accuracy": 0.5489412704754295,
+      "majority_accuracy_same_entries": 0.5308641975308642,
+      "momentum_accuracy_same_entries": 0.49664284167208145,
+      "net_bp_at_costs": {
+        "0": 0.44833834862624933,
+        "5": -4.551661651373751,
+        "10": -9.55166165137375,
+        "20": -19.55166165137375
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 729,
+          "accuracy": 0.49519890260631,
+          "mean_net_bp": -9.048365717265172
+        },
+        "NIFTY BANK": {
+          "predictions": 972,
+          "accuracy": 0.4876543209876543,
+          "mean_net_bp": -9.654271322040822
+        },
+        "NIFTY FMCG": {
+          "predictions": 729,
+          "accuracy": 0.49519890260631,
+          "mean_net_bp": -9.705344191472664
+        },
+        "NIFTY IT": {
+          "predictions": 729,
+          "accuracy": 0.4883401920438957,
+          "mean_net_bp": -10.530961251391345
+        },
+        "NIFTY METAL": {
+          "predictions": 729,
+          "accuracy": 0.522633744855967,
+          "mean_net_bp": -7.568575900169291
+        },
+        "NIFTY PHARMA": {
+          "predictions": 729,
+          "accuracy": 0.49382716049382713,
+          "mean_net_bp": -10.768248302347516
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1995,
+          "accuracy": 0.48872180451127817,
+          "mean_net_bp": -9.432526411031636
+        },
+        "2026-09": {
+          "predictions": 1957,
+          "accuracy": 0.5012774655084312,
+          "mean_net_bp": -9.853133625048295
+        },
+        "2026-10": {
+          "predictions": 665,
+          "accuracy": 0.5067669172932331,
+          "mean_net_bp": -9.021878421300723
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4808597733155542,
+        0.5131064656415897
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -10.647861491989593,
+        -8.434366309111338
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.056313623565085555,
+        -0.011428030585469972
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -10.56853178797647,
+        -8.536012495596605
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.05847953216374269,
+        -0.008446178058990833
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 60,
+      "rule": "ema8_21",
+      "predictions": 4617,
+      "eligible_rows": 50749,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.4972926142516786,
+      "material_precision": 0.3645224171539961,
+      "mean_gross_bp": -0.6117111241420208,
+      "mean_net_bp": -10.61171112414202,
+      "bullish_predictions": 1974,
+      "bearish_predictions": 2643,
+      "bullish_accuracy": 0.4331306990881459,
+      "bearish_accuracy": 0.5452137722285282,
+      "majority_accuracy_same_entries": 0.5308641975308642,
+      "momentum_accuracy_same_entries": 0.48689625297812433,
+      "net_bp_at_costs": {
+        "0": -0.6117111241420208,
+        "5": -5.611711124142021,
+        "10": -10.61171112414202,
+        "20": -20.61171112414202
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 729,
+          "accuracy": 0.47462277091906724,
+          "mean_net_bp": -10.684447954641872
+        },
+        "NIFTY BANK": {
+          "predictions": 972,
+          "accuracy": 0.49794238683127573,
+          "mean_net_bp": -10.243395607041258
+        },
+        "NIFTY FMCG": {
+          "predictions": 729,
+          "accuracy": 0.5267489711934157,
+          "mean_net_bp": -9.774077754762278
+        },
+        "NIFTY IT": {
+          "predictions": 729,
+          "accuracy": 0.49794238683127573,
+          "mean_net_bp": -10.941035015043875
+        },
+        "NIFTY METAL": {
+          "predictions": 729,
+          "accuracy": 0.5061728395061729,
+          "mean_net_bp": -10.591602756278272
+        },
+        "NIFTY PHARMA": {
+          "predictions": 729,
+          "accuracy": 0.48010973936899864,
+          "mean_net_bp": -11.55847949611816
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1995,
+          "accuracy": 0.49022556390977445,
+          "mean_net_bp": -11.63617970953652
+        },
+        "2026-09": {
+          "predictions": 1957,
+          "accuracy": 0.48696985181400104,
+          "mean_net_bp": -10.709148085662422
+        },
+        "2026-10": {
+          "predictions": 665,
+          "accuracy": 0.5488721804511278,
+          "mean_net_bp": -7.251562309769913
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.4786809482383645,
+        0.515747411561691
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -12.285170887652717,
+        -8.9951915080602
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        -0.05615937709864759,
+        -0.012295081967213115
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        -0.012134502923976609,
+        0.03140784946580171
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -11.994086796177388,
+        -9.104631716252715
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        -0.05501482293697206,
+        -0.012562269872211393
+      ]
+    },
+    {
+      "group": "primary_unseen_outcomes_19_stocks",
+      "horizon_minutes": 60,
+      "rule": "training_majority",
+      "predictions": 4617,
+      "eligible_rows": 50749,
+      "actionable_bar_coverage": 1.0,
+      "sectors": 6,
+      "stocks": 19,
+      "days": 49,
+      "accuracy": 0.5308641975308642,
+      "material_precision": 0.39852718215291316,
+      "mean_gross_bp": 2.7951949838449064,
+      "mean_net_bp": -7.2048050161550945,
+      "bullish_predictions": 1215,
+      "bearish_predictions": 3402,
+      "bullish_accuracy": 0.4576131687242798,
+      "bearish_accuracy": 0.5570252792475014,
+      "majority_accuracy_same_entries": 0.5308641975308642,
+      "momentum_accuracy_same_entries": 0.48689625297812433,
+      "net_bp_at_costs": {
+        "0": 2.7951949838449064,
+        "5": -2.2048050161550936,
+        "10": -7.204805016155094,
+        "20": -17.204805016155092
+      },
+      "by_sector": {
+        "NIFTY AUTO": {
+          "predictions": 729,
+          "accuracy": 0.5006858710562414,
+          "mean_net_bp": -8.438769117150873
+        },
+        "NIFTY BANK": {
+          "predictions": 972,
+          "accuracy": 0.5092592592592593,
+          "mean_net_bp": -9.552544501692553
+        },
+        "NIFTY FMCG": {
+          "predictions": 729,
+          "accuracy": 0.5404663923182441,
+          "mean_net_bp": -5.819096020172204
+        },
+        "NIFTY IT": {
+          "predictions": 729,
+          "accuracy": 0.6008230452674898,
+          "mean_net_bp": -1.5237969437983236
+        },
+        "NIFTY METAL": {
+          "predictions": 729,
+          "accuracy": 0.5651577503429356,
+          "mean_net_bp": -7.110521978635848
+        },
+        "NIFTY PHARMA": {
+          "predictions": 729,
+          "accuracy": 0.47599451303155005,
+          "mean_net_bp": -10.00152170696827
+        }
+      },
+      "by_month": {
+        "2026-08": {
+          "predictions": 1995,
+          "accuracy": 0.5318295739348371,
+          "mean_net_bp": -7.326506544744277
+        },
+        "2026-09": {
+          "predictions": 1957,
+          "accuracy": 0.515074092999489,
+          "mean_net_bp": -8.03921663166958
+        },
+        "2026-10": {
+          "predictions": 665,
+          "accuracy": 0.5744360902255639,
+          "mean_net_bp": -4.3841462475877675
+        }
+      },
+      "accuracy_day_bootstrap_95_ci": [
+        0.5131010727877896,
+        0.5488097837955885
+      ],
+      "net_bp_day_bootstrap_95_ci": [
+        -8.736796028607085,
+        -5.6360167584036285
+      ],
+      "accuracy_excess_vs_majority_day_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ],
+      "accuracy_excess_vs_momentum_day_bootstrap_95_ci": [
+        0.020060396893874028,
+        0.06671393495882996
+      ],
+      "net_bp_5day_block_bootstrap_95_ci": [
+        -8.42402060920371,
+        -6.0044538454982135
+      ],
+      "accuracy_excess_vs_majority_5day_block_bootstrap_95_ci": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "deployment_suitable": false,
+  "deployment_checks": {
+    "selection_passed_before_test": false,
+    "enough_predictions": true,
+    "enough_bullish_predictions": true,
+    "enough_bearish_predictions": true,
+    "coverage": false,
+    "sector_diversity": true,
+    "positive_net_return_lower_bound": false,
+    "beats_majority_lower_bound": false,
+    "positive_net_return_5day_block_lower_bound": false,
+    "beats_majority_5day_block_lower_bound": false,
+    "positive_cold_stock_net_return": false
+  },
+  "limitations": [
+    "Fixed current liquid-stock universe has survivorship bias; it is not the entire market.",
+    "Historical candles may have later revisions; no point-in-time live publication archive exists.",
+    "Costs are illustrative, fills assume next-open execution without delay.",
+    "Overlapping raw bars are not independent; scoring thins within stocks and bootstraps whole market dates.",
+    "No live-feed/trading APIs were called, and no production signals were changed.",
+    "30 minutes is the trained target; 15/60 minutes are secondary outcome checks of the same frozen rule."
+  ],
+  "artifact_sha256": {
+    "final_test.json": "7cf69b15548d820bf160ee07a50bee87f581b50fda4d7e8431bee0fd7c1dac95",
+    "test_predictions.csv": "6f1c566e55f9832737b36ec7b5ef27a227f680ae20db3ce715dbcf63c778d98e",
+    "frozen_model.joblib": "840c34538d54fdb68b15df45f2d88f0e55e97411dc99eb71861b8b044188e30a",
+    "tuning_search.json": "fd11799ec8dd6d836788b67f063ebbf636213ef4095425351be6f6cb77a5afbc"
+  },
+  "engine_source_sha256": {
+    "provider.py": "96c19b65f86afc7afd5d7083a1c97e148f0022f6d5a05131c21659c4e487a895",
+    "indicators.py": "9f0b8fbc6b7aa43b4cd318c09d8a95c61e4d78c2137b397866d164fd4ffbfc68",
+    "sessions.py": "accb1c9c2d5cfed48a22b292924aaf5b1d4a3461944faaeda5c6643944b08175",
+    "scanner.py": "6a3574a5a1b29c7973c64409810ad486e5c79bf5f43dabbaaeedbd0eb6b76426"
+  }
+}

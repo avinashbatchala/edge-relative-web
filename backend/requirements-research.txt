@@ -1,0 +1,3 @@
+# Offline research only; application dependencies stay in requirements.txt.
+-r requirements-dev.txt
+scikit-learn==1.7.2
