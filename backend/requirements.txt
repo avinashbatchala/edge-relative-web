@@ -1,0 +1,7 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.9,<3
+pandas>=2.2,<3
+numpy>=1.26,<3
+growwapi==1.5.0
+python-dotenv>=1,<2

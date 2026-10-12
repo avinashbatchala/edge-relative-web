@@ -1,0 +1,10 @@
+[
+ {"symbol":"TCS","kind":"stock","enabled":true,"sector":"NIFTY IT"},
+ {"symbol":"HDFCBANK","kind":"stock","enabled":true,"sector":"NIFTY BANK"},
+ {"symbol":"SUNPHARMA","kind":"stock","enabled":true,"sector":"NIFTY PHARMA"},
+ {"symbol":"NIFTY 50","kind":"index","groww_symbol":"NSE-NIFTY"},
+ {"symbol":"NIFTYBEES","kind":"etf"},
+ {"symbol":"NIFTY IT","kind":"index"},
+ {"symbol":"NIFTY BANK","kind":"index"},
+ {"symbol":"NIFTY PHARMA","kind":"index"}
+]

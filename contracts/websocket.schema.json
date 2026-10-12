@@ -1,0 +1,401 @@
+{
+  "$defs": {
+    "Quote": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "title": "Symbol",
+          "type": "string"
+        },
+        "price": {
+          "exclusiveMinimum": 0,
+          "title": "Price",
+          "type": "number"
+        },
+        "time": {
+          "title": "Time",
+          "type": "integer"
+        },
+        "provisional": {
+          "const": true,
+          "default": true,
+          "title": "Provisional",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "symbol",
+        "price",
+        "time"
+      ],
+      "title": "Quote",
+      "type": "object"
+    },
+    "QuoteEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "quote",
+          "default": "quote",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/Quote"
+        }
+      },
+      "required": [
+        "sequence",
+        "sent_at",
+        "payload"
+      ],
+      "title": "QuoteEvent",
+      "type": "object"
+    },
+    "ScanSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "timezone": {
+          "const": "Asia/Kolkata",
+          "default": "Asia/Kolkata",
+          "title": "Timezone",
+          "type": "string"
+        },
+        "price_benchmark": {
+          "title": "Price Benchmark",
+          "type": "string"
+        },
+        "volume_benchmark": {
+          "title": "Volume Benchmark",
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ScannerRow"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "diagnostics": {
+          "additionalProperties": true,
+          "title": "Diagnostics",
+          "type": "object"
+        }
+      },
+      "required": [
+        "generated_at",
+        "as_of",
+        "price_benchmark",
+        "volume_benchmark",
+        "rows",
+        "diagnostics"
+      ],
+      "title": "ScanSnapshot",
+      "type": "object"
+    },
+    "ScannerRow": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "title": "Symbol",
+          "type": "string"
+        },
+        "candle_time": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candle Time"
+        },
+        "close": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Close"
+        },
+        "rrs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rrs"
+        },
+        "previous_rrs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Rrs"
+        },
+        "rrv": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rrv"
+        },
+        "relative_volatility": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Volatility"
+        },
+        "sector_rrs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sector Rrs"
+        },
+        "sector_state": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sector State"
+        },
+        "market_regime": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Market Regime"
+        },
+        "direction": {
+          "default": "unavailable",
+          "enum": [
+            "bullish",
+            "bearish",
+            "mixed",
+            "unavailable"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "quality": {
+          "default": "missing",
+          "enum": [
+            "ready",
+            "historical",
+            "stale",
+            "missing",
+            "warmup",
+            "error"
+          ],
+          "title": "Quality",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "title": "ScannerRow",
+      "type": "object"
+    },
+    "SnapshotEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "snapshot",
+          "default": "snapshot",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ScanSnapshot"
+        }
+      },
+      "required": [
+        "sequence",
+        "sent_at",
+        "payload"
+      ],
+      "title": "SnapshotEvent",
+      "type": "object"
+    },
+    "Status": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "const": "groww",
+          "default": "groww",
+          "title": "Provider",
+          "type": "string"
+        },
+        "configured": {
+          "title": "Configured",
+          "type": "boolean"
+        },
+        "feed": {
+          "default": "disabled",
+          "enum": [
+            "disabled",
+            "connecting",
+            "connected",
+            "stale",
+            "disconnected"
+          ],
+          "title": "Feed",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "configured",
+        "message"
+      ],
+      "title": "Status",
+      "type": "object"
+    },
+    "StatusEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sent_at": {
+          "format": "date-time",
+          "title": "Sent At",
+          "type": "string"
+        },
+        "type": {
+          "const": "status",
+          "default": "status",
+          "title": "Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/Status"
+        }
+      },
+      "required": [
+        "sequence",
+        "sent_at",
+        "payload"
+      ],
+      "title": "StatusEvent",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/StatusEvent"
+    },
+    {
+      "$ref": "#/$defs/QuoteEvent"
+    },
+    {
+      "$ref": "#/$defs/SnapshotEvent"
+    }
+  ]
+}
