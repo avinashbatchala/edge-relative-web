@@ -72,3 +72,14 @@ Regular NSE 09:15–15:30 IST sessions only. Special sessions, an authoritative 
 The future backtester can reuse the pure calculations and scanner on as-of history prefixes. Transaction costs, slippage, positions, trade lifecycle and performance metrics remain future work. This Python POC does not replace the production Java/PostgreSQL design.
 
 SDK references used: Groww Python [authentication](https://groww.in/trade-api/docs/python-sdk), [historical candles](https://groww.in/trade-api/docs/python-sdk/backtesting), [feed](https://groww.in/trade-api/docs/python-sdk/feed), and [instruments](https://groww.in/trade-api/docs/python-sdk/instruments). Charts use [TradingView Lightweight Charts](https://tradingview.github.io/lightweight-charts/), with attribution in the UI.
+
+## Exporting calculations for verification
+
+The chart toolbar has two download actions:
+
+- **Download icon — CSV:** the selected stock's entire loaded candle history, all computed indicators/correlations/events, readable strength/weakness/dislocation states, aligned benchmark OHLCV, quality flags, and settings.
+- **Archive icon — Run ZIP:** CSVs for all loaded stocks plus normalized source candles, benchmark Daily history, scanner snapshot, data-quality diagnostics, a column dictionary, engine source and a checksummed manifest.
+
+Exports include the full loaded range, even during replay. Missing values remain missing; booleans and zero are distinct. Both actions check the backend response and display a visible error if no history exists, a live refresh superseded the displayed run, or the download fails. Downloading does not navigate away from the workspace.
+
+Use **Run ZIP** when sharing results for numerical verification or algorithm research. Its inputs, parameters and code hashes provide substantially more context than a chart screenshot. See `contracts/exports.md` for formats and limitations.

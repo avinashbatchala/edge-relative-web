@@ -100,6 +100,7 @@ class ChartPoint(Contract):
 
 
 class ChartResponse(Contract):
+    run_id: str | None = None
     schema_version: Literal["1.0"] = "1.0"
     symbol: str
     timezone: Literal["Asia/Kolkata"] = "Asia/Kolkata"

@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exports/run.zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Run */
+        get: operations["export_run_api_v1_exports_run_zip_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/{symbol}.csv": {
         parameters: {
             query?: never;
@@ -115,23 +132,6 @@ export interface paths {
         };
         /** Export */
         get: operations["export_api_v1_exports__symbol__csv_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Index */
-        get: operations["index__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -165,6 +165,8 @@ export interface components {
         };
         /** ChartResponse */
         ChartResponse: {
+            /** Run Id */
+            run_id?: string | null;
             /**
              * Schema Version
              * @default 1.0
@@ -575,9 +577,56 @@ export interface operations {
             };
         };
     };
+    export_run_api_v1_exports_run_zip_get: {
+        parameters: {
+            query?: {
+                run_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+            /** @description No loaded run */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run replaced */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     export_api_v1_exports__symbol__csv_get: {
         parameters: {
-            query?: never;
+            query?: {
+                run_id?: string | null;
+            };
             header?: never;
             path: {
                 symbol: string;
@@ -592,8 +641,22 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "text/csv": string;
                 };
+            };
+            /** @description No loaded chart */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run replaced */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -602,26 +665,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    index__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
         };

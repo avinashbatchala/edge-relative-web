@@ -162,18 +162,25 @@
         }
       }
     },
-    "/api/v1/exports/{symbol}.csv": {
+    "/api/v1/exports/run.zip": {
       "get": {
-        "summary": "Export",
-        "operationId": "export_api_v1_exports__symbol__csv_get",
+        "summary": "Export Run",
+        "operationId": "export_run_api_v1_exports_run_zip_get",
         "parameters": [
           {
-            "name": "symbol",
-            "in": "path",
-            "required": true,
+            "name": "run_id",
+            "in": "query",
+            "required": false,
             "schema": {
-              "type": "string",
-              "title": "Symbol"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
             }
           }
         ],
@@ -181,10 +188,19 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": {}
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
               }
             }
+          },
+          "404": {
+            "description": "No loaded run"
+          },
+          "409": {
+            "description": "Run replaced"
           },
           "422": {
             "description": "Validation Error",
@@ -199,16 +215,61 @@
         }
       }
     },
-    "/": {
+    "/api/v1/exports/{symbol}.csv": {
       "get": {
-        "summary": "Index",
-        "operationId": "index__get",
+        "summary": "Export",
+        "operationId": "export_api_v1_exports__symbol__csv_get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Symbol"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No loaded chart"
+          },
+          "409": {
+            "description": "Run replaced"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -318,6 +379,17 @@
       },
       "ChartResponse": {
         "properties": {
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
           "schema_version": {
             "type": "string",
             "const": "1.0",

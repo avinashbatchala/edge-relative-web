@@ -386,3 +386,7 @@ pre { max-height: 260px; overflow: auto; padding: 11px; background: var(--backgr
   .indicator-region { grid-template-rows: 33px minmax(0, 1fr); }
   .study-readouts { padding-bottom: 3px; }
 }
+
+.export-feedback { flex: 0 0 auto; padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-size: 11px; overflow-wrap: anywhere; }
+.export-error { color: var(--caution); }
+.export-link:disabled { opacity: .45; cursor: wait; }

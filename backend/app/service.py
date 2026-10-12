@@ -28,6 +28,8 @@ from .indicators import (
 from .provider import GrowwProvider, ProviderError
 from .scanner import make_row, number
 from .feed import FeedWorker
+from .exports import ExportRun
+from uuid import uuid4
 
 DEFAULT_CONFIG = {
     "price_benchmark": "NIFTY 50",
@@ -68,6 +70,7 @@ class Workspace:
         self.provider = GrowwProvider(Path(cache_dir))
         self.lock = threading.Lock()
         self.snapshot = None
+        self.export_run = None
         self.charts = {}
         self.request = None
         self.feed = None
@@ -225,6 +228,7 @@ class Workspace:
             )
             benchmark = aligned[price]
             proxy = aligned.get(volume, benchmark.copy() * np.nan)
+            daily = None
             try:
                 daily = self.provider.fetch(
                     catalog[price],
@@ -259,6 +263,7 @@ class Workspace:
                 )
             rows = []
             charts = {}
+            run_id = str(uuid4())
             for instrument in stocks:
                 if instrument.symbol not in aligned:
                     rows.append(
@@ -321,6 +326,7 @@ class Workspace:
                         )
                     )
                 charts[instrument.symbol] = ChartResponse(
+                    run_id=run_id,
                     symbol=instrument.symbol,
                     price_benchmark=price,
                     volume_benchmark=volume,
@@ -340,6 +346,15 @@ class Workspace:
                 diagnostics=diagnostics,
             )
             # Publish the whole run atomically after all calculations succeed.
+            self.export_run = ExportRun.capture(
+                charts,
+                snapshot,
+                request,
+                aligned,
+                daily,
+                list(catalog.values()),
+                run_id,
+            )
             self.charts = charts
             self.snapshot = snapshot
             self.request = request
