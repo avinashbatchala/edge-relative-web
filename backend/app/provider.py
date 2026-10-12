@@ -178,7 +178,7 @@ class GrowwProvider:
             chunks.append((file, cursor, stop, response, immutable))
             rows.extend(payload["candles"])
             cursor = stop
-        if not rows:
+        if not rows and interval != 5:
             raise ProviderError(
                 "history_empty",
                 f"{instrument.symbol}: Groww returned no candles for this range.",
@@ -190,11 +190,12 @@ class GrowwProvider:
                 now=min(end, pd.Timestamp.now(tz=TZ)),
                 instrument=instrument.symbol,
                 session_profile=instrument.session_profile,
+                allow_unusable=interval == 5,
             )
             data = data.loc[
                 data.index >= (start if interval == 5 else start.normalize())
             ]
-            if data.empty:
+            if data.empty and interval != 5:
                 raise ValueError("No data")
             if interval == 5:
                 data.attrs["_cache_chunks"] = [

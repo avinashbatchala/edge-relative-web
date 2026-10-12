@@ -442,8 +442,13 @@ def parse_candles(
     invalid_policy="quarantine",
     instrument="unknown",
     session_profile="nse_cash",
+    allow_unusable=False,
 ):
-    """Filter session/completion first; quarantine invalid prices, isolate unavailable volume."""
+    """Filter session/completion first; quarantine prices, isolate unavailable volume.
+
+    Providers may retain unusable/empty frames for bounded recovery. Structural
+    errors and conflicting duplicates still fail; callers default to strict mode.
+    """
     import warnings
 
     if invalid_policy not in {"quarantine", "raise"}:
@@ -456,7 +461,7 @@ def parse_candles(
             "No candles in response; inspect subscription/instrument/date range"
         )
     rows = payload["candles"]
-    if not rows:
+    if not rows and not allow_unusable:
         raise ValueError("Empty candle history; no demo fallback is used")
     parsed = []
     for row in rows:
@@ -467,6 +472,9 @@ def parse_candles(
             raise ValueError("Missing candle timestamp")
         parsed.append([stamp, *row[1:5], row[5] if len(row) > 5 else np.nan])
     d = pd.DataFrame(parsed, columns=["time", *COLS]).set_index("time").sort_index()
+    if not parsed:
+        d.index = pd.DatetimeIndex([], tz=TZ, name="time")
+        d = d.astype(float)
     d[COLS] = d[COLS].apply(pd.to_numeric, errors="coerce")
     now = pd.Timestamp.now(tz=TZ) if now is None else pd.Timestamp(now)
     now = now.tz_localize(TZ) if now.tzinfo is None else now.tz_convert(TZ)
@@ -482,7 +490,7 @@ def parse_candles(
     else:
         d = d[d.index.normalize() < now.normalize()]
     excluded = received - len(d)
-    if d.empty:
+    if d.empty and not allow_unusable:
         raise ValueError("No completed regular-session candles")
     # Compare original values before sanitization: conflicting duplicates must still fail.
     for _, group in d[d.index.duplicated(keep=False)].groupby(level=0):
@@ -547,7 +555,7 @@ def parse_candles(
             RuntimeWarning,
             stacklevel=2,
         )
-    if not d.close.notna().any():
+    if not d.close.notna().any() and not allow_unusable:
         raise ValueError(
             f"{instrument}: no usable completed prices; diagnostics="
             + json.dumps(quality)
