@@ -38,7 +38,18 @@ The volatility study reproduces the supplied script's **relative volatility expa
 
 `config/instruments.json` initially enables TCS, HDFCBANK and SUNPHARMA plus their sector benchmarks, NIFTY 50 and NIFTYBEES. These are real instrument configuration entries, not demo data. Edit the catalog to change the universe (up to 20 stocks). `sector` identifies another enabled catalog symbol. `groww_symbol` and `exchange_token` are resolved against the current Groww master; do not guess exchange tokens. If a name is ambiguous or unavailable, use its exact Groww symbol and sync again. A failed sector fetch leaves sector values unavailable; a failed volume-proxy fetch leaves volume momentum unavailable while preserving price studies.
 
-`config/scanner.json` sets default benchmarks, indicator parameters, live-feed enablement and publication grace. HTTP-selected settings are retained in memory for live reconciliations. Raw Groww historical candle responses are cached in `data/candles` only when the requested chunk is fully historical. Cache keys include identity, range and interval. Today's ranges are fetched again to reconcile prices/volume. Deleting the cache is safe. No credentials are cached.
+`config/scanner.json` sets default benchmarks, indicator parameters, live-feed enablement and publication grace. HTTP-selected settings are retained in memory for live reconciliations. Raw Groww historical candle responses are cached in `data/candles` only when the requested chunk is fully historical. Cache keys include identity, range, interval and session profile (v3). Historical cache coverage is checked before reuse; verified gap repairs update the cached broker response. Today's ranges are fetched again to reconcile prices/volume. Deleting the cache is safe. No credentials are cached.
+
+
+### Session profiles and gap recovery
+
+Each catalog entry has an explicit `session_profile`: `nse_cash` (default) or `nse_cas`. The initial F&O-eligible stocks use `nse_cas`; NIFTY 50 and their sector indices use the same **analysis window** to exclude indicative auction-time index values. Indices are not themselves auction-traded. NIFTYBEES retains `nse_cash`. New securities require an explicit eligibility review; the app does not infer CAS eligibility from `kind` or the instrument master.
+
+[The NSE closing-auction rules](https://www.nseindia.com/static/products-services/closing-auction-session) separate continuous trading from the 15:15–15:35 auction. The versioned policy in `sessions.py` applies the new window from 3 August 2026. Calculations use the earliest continuous close among the stock and its configured benchmark dependencies. Auction rows are excluded before price validation and counted separately in diagnostics. Scanner freshness and live reconciliation use the same profile. Daily context still uses the completed official Daily series, not a manufactured 15:15 close.
+
+For observed trading dates, the provider checks every completed requested five-minute slot, including trailing holes. It re-fetches contiguous missing/invalid OHLC or missing traded-volume ranges twice at most, with a total budget of eight repair calls per instrument per scan. Zero traded volume remains zero; missing index volume does not trigger recovery. Repair responses must pass the normal timestamp/OHLC validation. Valid existing prices are never overwritten, and volume-only repairs require matching OHLC. Verified repairs persist in historical cache; unresolved holes remain null and reset indicator warmup as before.
+
+A session absent from one source can be recovered only when another fetched source establishes that trading date. Weekdays absent from every source are not assumed to be trading days. Diagnostics expose recovery counts, attempted calls, remaining holes and repaired/unresolved timestamps. Exported source inputs retain each instrument's own session window; per-stock CSVs use the shared calculation window and identify its policy/profile.
 
 ## Contracts, boundaries & tests
 
@@ -65,9 +76,9 @@ For frontend development, run the API on port 8000 and `npm run dev --prefix fro
 
 ## Verification and limits
 
-Local validation: 19 backend tests (including 40 earlier notebook mathematical checks), two frontend unit tests, WebSocket schema checks, TypeScript checking and production compilation. SDK method signatures and feed payload structure were checked against the installed 1.5.0 wheel. Real Groww authentication, account entitlements, continuous live reconnection, and visual browser verification have not been tested here. No credentials were supplied.
+Local validation: 47 backend tests (including the earlier notebook mathematical checks), 20 frontend unit tests, WebSocket schema checks, TypeScript checking and production compilation. SDK method signatures and feed payload structure were checked against the installed 1.5.0 wheel. Real Groww authentication, account entitlements, continuous live reconnection, and visual browser verification have not been tested here. No credentials were supplied.
 
-Regular NSE 09:15–15:30 IST sessions only. Special sessions, an authoritative holiday calendar, split/dividend adjustments and precise Thinkorswim prefetch/warmup parity are not implemented. Missing observations remain missing; they are never forward-filled into indicator inputs. Scanner labels are directional observations, **not strategy-qualified trade plans**. The app has no order placement or execution simulation.
+Regular NSE continuous sessions only: 09:15–15:15 IST for the configured CAS analysis profile from 3 August 2026, and 09:15–15:30 for ordinary cash/ETF history or earlier dates. Special sessions, an authoritative holiday calendar, split/dividend adjustments and precise Thinkorswim prefetch/warmup parity are not implemented. Missing observations remain missing; they are never forward-filled into indicator inputs. Scanner labels are directional observations, **not strategy-qualified trade plans**. The app has no order placement or execution simulation.
 
 The future backtester can reuse the pure calculations and scanner on as-of history prefixes. Transaction costs, slippage, positions, trade lifecycle and performance metrics remain future work. This Python POC does not replace the production Java/PostgreSQL design.
 

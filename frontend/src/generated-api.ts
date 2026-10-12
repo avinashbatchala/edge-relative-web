@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Index */
+        get: operations["index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -165,6 +182,18 @@ export interface components {
         };
         /** ChartResponse */
         ChartResponse: {
+            /**
+             * Session Profile
+             * @default nse_cash
+             * @enum {string}
+             */
+            session_profile: "nse_cash" | "nse_cas";
+            /**
+             * Session Policy Version
+             * @default nse-continuous-v1
+             * @constant
+             */
+            session_policy_version: "nse-continuous-v1";
             /** Run Id */
             run_id?: string | null;
             /**
@@ -266,6 +295,12 @@ export interface components {
              * @constant
              */
             segment: "CASH";
+            /**
+             * Session Profile
+             * @default nse_cash
+             * @enum {string}
+             */
+            session_profile: "nse_cash" | "nse_cas";
         };
         /** ScanRequest */
         ScanRequest: {
@@ -665,6 +700,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    index__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

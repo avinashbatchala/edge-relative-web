@@ -170,6 +170,8 @@ class ExportRun:
                     "service.py",
                     "exports.py",
                     "contracts.py",
+                    "sessions.py",
+                    "provider.py",
                 ]
             },
         )
@@ -198,6 +200,9 @@ class ExportRun:
                 "symbol": symbol,
                 "provider": "groww",
                 "interval_minutes": 5,
+                "session_profile": chart.session_profile,
+                "session_policy_version": chart.session_policy_version,
+                "session_phase": "continuous",
                 "price_unit": chart.price_unit,
                 "volume_unit": chart.volume_unit,
                 "is_provisional": False,
@@ -439,6 +444,10 @@ class ExportRun:
             "timezone": TZ,
             "price_benchmark": self.snapshot.price_benchmark,
             "volume_benchmark": self.snapshot.volume_benchmark,
+            "session_policy_version": "nse-continuous-v1",
+            "session_profiles_by_symbol": {
+                s: c.session_profile for s, c in self.charts.items()
+            },
             "parameters_by_symbol": {s: c.parameters for s, c in self.charts.items()},
             "input_files": input_files,
             "daily_context_file": (

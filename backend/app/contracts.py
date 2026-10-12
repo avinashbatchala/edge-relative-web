@@ -18,6 +18,7 @@ class Instrument(Contract):
     exchange_token: str | None = None
     exchange: Literal["NSE"] = "NSE"
     segment: Literal["CASH"] = "CASH"
+    session_profile: Literal["nse_cash", "nse_cas"] = "nse_cash"
 
 
 class IndicatorSettings(Contract):
@@ -100,6 +101,8 @@ class ChartPoint(Contract):
 
 
 class ChartResponse(Contract):
+    session_profile: Literal["nse_cash", "nse_cas"] = "nse_cash"
+    session_policy_version: Literal["nse-continuous-v1"] = "nse-continuous-v1"
     run_id: str | None = None
     schema_version: Literal["1.0"] = "1.0"
     symbol: str

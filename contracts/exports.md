@@ -18,7 +18,7 @@ UTF-8 with BOM for spreadsheet compatibility. Standard quoted CSV with CRLF row 
 
 Each row includes:
 
-- Export version, run ID, symbol, provider, request range, scan generation time, interval and units.
+- Export version, run ID, symbol, provider, request range, scan generation time, interval, session profile/policy/phase and units.
 - Beginning-of-candle epoch seconds, UTC/IST timestamps with offsets, IST session date, end-of-candle UTC time.
 - Stock open/high/low/close/volume and availability flags.
 - Price benchmark, volume benchmark and sector benchmark identities and their aligned OHLCV.
@@ -41,12 +41,12 @@ Known feature columns remain present even when a dependency is absent. Their val
 ## ZIP contents
 
 - `results/*.csv`: expanded per-stock result files.
-- `inputs/*_5m.csv`: normalized, aligned stock/index/proxy/sector OHLCV. Gaps and quarantined prices remain missing. Tradeless index volume stays null.
+- `inputs/*_5m.csv`: normalized stock/index/proxy/sector OHLCV in each source's continuous session window. Reindex these inputs to the result CSV's shared session profile to reproduce a mixed-profile comparison. Gaps and quarantined prices remain missing. Tradeless index volume stays null.
 - `inputs/benchmark_daily.csv`: the completed benchmark Daily input history used by the market-state engine, including its fetched warmup range; omitted if that dependency failed.
 - `scanner_snapshot.json`: capture-time scanner results.
-- `diagnostics.json`: missing input counts, parser quarantine reason counts/sample rows, and fetch failures.
+- `diagnostics.json`: missing input counts, parser quarantine reason counts/sample rows, fetch failures, separate noncontinuous-row counts, and bounded gap-recovery attempts/results.
 - `data_dictionary.json`: field interpretations, null/boolean encoding, state mappings, and signal timing.
-- `engine/*.py`: indicator, scanner, orchestration, export and contract source used by the running process.
+- `engine/*.py`: indicator, scanner, orchestration, export, session policy, provider and contract source used by the running process.
 - `manifest.json`: request, parameters, instrument identities, row counts, input-file mapping, generation time, numerical runtime versions, code hashes, and SHA-256 of every other included file.
 
 No credentials, environment variables, account tokens, or live quote snapshots are included. Benchmark/source exports are normalized inputs, not a claim that raw ticks or complete original broker responses have been retained.
@@ -56,3 +56,10 @@ No credentials, environment variables, account tokens, or live quote snapshots a
 RRV is relative volume momentum, not time-of-day RVOL. Relative volatility expansion is based on underlying ATR, not option IV or DD02's volume-expansion RVE. These remain experimental directional observations rather than strategy-qualified setups.
 
 The bundle supports checking alignment, warmup, missingness, formula continuity and the exact Python implementation. It does not establish Thinkorswim prefetch parity or introduce corporate-action adjustments, special-session calendars, trade execution, or backtesting. Algorithm tuning should evaluate separate/out-of-sample periods rather than optimizing only a supplied export.
+
+
+## Continuous session policy
+
+`session_policy_version=nse-continuous-v1`; `session_profile` identifies the shared calculation window and `session_phase=continuous` for every result row. `nse_cas` has 72 five-minute slots (09:15 through 15:10) from 2026-08-03; earlier dates and `nse_cash` have 75 (through 15:25). A mixed-profile comparison uses the earliest configured continuous close. Instrument metadata records each source profile, while `session_profiles_by_symbol` in the manifest records each result profile.
+
+Missing expected slots remain null unless Groww supplies a validated repair. Recovery diagnostics distinguish verified price/volume repairs from remaining holes and do not retain broker exceptions or credentials. Parser quarantine counts describe the original response; current missingness counts describe the post-recovery input. Noncontinuous/auction rows do not count as missing or invalid continuous candles. Daily benchmark history remains the completed official Daily input, including its official closing auction price where applicable.

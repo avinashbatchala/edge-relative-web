@@ -26,6 +26,7 @@ from .indicators import (
     ema,
 )
 from .provider import GrowwProvider, ProviderError
+from .sessions import expected_slot as session_expected_slot
 from .scanner import make_row, number
 from .feed import FeedWorker
 from .exports import ExportRun
@@ -207,7 +208,8 @@ class Workspace:
             }
             fetched = {}
             failures = {}
-            for name in sorted(names):
+            recoverable = set()
+            for name in [price, *sorted(names - {price})]:
                 try:
                     fetched[name] = self.provider.fetch(
                         catalog[name],
@@ -216,18 +218,46 @@ class Workspace:
                         refresh=request.refresh,
                     )
                 except ProviderError as exc:
-                    if name == price:
+                    if name == price and exc.code != "history_empty":
                         raise
                     failures[name] = exc.message
-            if price not in fetched:
-                raise ProviderError(
-                    "benchmark_missing", "Price benchmark has no usable history."
-                )
-            aligned, diagnostics = aligned_grid(
-                fetched, asof=min(pd.Timestamp(request.end), now)
+                    if exc.code == "history_empty":
+                        recoverable.add(name)
+            # Only peer-observed dates can establish an absent session. Holidays
+            # missing from every source are never synthesized or fetched.
+            observed_dates = sorted(
+                {t.normalize() for frame in fetched.values() for t in frame.index}
             )
-            benchmark = aligned[price]
-            proxy = aligned.get(volume, benchmark.copy() * np.nan)
+            if hasattr(self.provider, "repair_gaps"):
+                for name in sorted(names):
+                    if name not in fetched and name not in recoverable:
+                        continue
+                    frame = fetched.get(name)
+                    if frame is None:
+                        frame = pd.DataFrame(
+                            columns=COLS, index=pd.DatetimeIndex([], tz=TZ), dtype=float
+                        )
+                    missing_dates = set(observed_dates) - set(frame.index.normalize())
+                    if missing_dates:
+                        repaired = self.provider.repair_gaps(
+                            catalog[name],
+                            frame,
+                            request.start,
+                            request.end,
+                            session_dates=observed_dates,
+                        )
+                        fetched[name] = repaired
+                        if repaired.close.notna().any():
+                            failures.pop(name, None)
+            if price not in fetched or not fetched[price].close.notna().any():
+                raise ProviderError(
+                    "benchmark_missing",
+                    "Price benchmark has no usable history after recovery.",
+                )
+            # Comparison calculations use the shared continuous window of all
+            # dependencies. ETF source history still retains its own later slots.
+            contexts = {}
+            diagnostics = {}
             daily = None
             try:
                 daily = self.provider.fetch(
@@ -237,23 +267,52 @@ class Workspace:
                     interval=1440,
                     refresh=request.refresh,
                 )
-                market = market_state(benchmark, daily, parameters)
             except ProviderError as exc:
                 failures["daily_context"] = exc.message
-                market = pd.DataFrame(
-                    {
-                        "regime": 0,
-                        "ready": False,
-                        "entry_status": "BLOCKED / DAILY DATA",
-                    },
-                    index=benchmark.index,
+            profiles_by_symbol = {
+                instrument.symbol: (
+                    "nse_cas"
+                    if any(
+                        catalog[n].session_profile == "nse_cas"
+                        for n in [instrument.symbol, price, volume, instrument.sector]
+                        if n in catalog
+                    )
+                    else "nse_cash"
                 )
-            expected = self.expected_slot(min(pd.Timestamp(request.end), now))
-            historical = pd.Timestamp(request.end).tz_convert(
-                TZ
-            ).date() < now.date() or (
-                expected is None and benchmark.index[-1].date() < now.date()
-            )
+                for instrument in stocks
+            }
+            for instrument in stocks:
+                profile = profiles_by_symbol[instrument.symbol]
+                if profile in contexts:
+                    continue
+                aligned, report = aligned_grid(
+                    fetched,
+                    asof=now,
+                    session_profile=profile,
+                    start=request.start,
+                    end=request.end,
+                )
+                benchmark = aligned[price]
+                if benchmark.empty:
+                    raise ProviderError(
+                        "history_invalid",
+                        "No completed continuous-session candles in range.",
+                    )
+                market = (
+                    market_state(benchmark, daily, parameters)
+                    if daily is not None
+                    else pd.DataFrame(
+                        {
+                            "regime": 0,
+                            "ready": False,
+                            "entry_status": "BLOCKED / DAILY DATA",
+                        },
+                        index=benchmark.index,
+                    )
+                )
+                contexts[profile] = (aligned, market)
+                diagnostics[profile] = report
+            historical = pd.Timestamp(request.end).tz_convert(TZ).date() < now.date()
             if (
                 request.live
                 and pd.Timestamp(request.end).tz_convert(TZ).date() != now.date()
@@ -265,7 +324,20 @@ class Workspace:
             charts = {}
             run_id = str(uuid4())
             for instrument in stocks:
-                if instrument.symbol not in aligned:
+                profile = profiles_by_symbol[instrument.symbol]
+                aligned, market = contexts[profile]
+                benchmark = aligned[price]
+                proxy = aligned.get(volume, benchmark.copy() * np.nan)
+                expected = self.expected_slot(
+                    min(pd.Timestamp(request.end), now), profile
+                )
+                historical_context = historical or (
+                    expected is None and benchmark.index[-1].date() < now.date()
+                )
+                if (
+                    instrument.symbol not in aligned
+                    or not aligned[instrument.symbol].close.notna().any()
+                ):
                     rows.append(
                         ScannerRow(
                             symbol=instrument.symbol,
@@ -288,7 +360,7 @@ class Workspace:
                 features["price_ema8"] = ema(bars.close, 8)
                 features["price_ema21"] = ema(bars.close, 21)
                 stale = (
-                    not historical
+                    not historical_context
                     and expected is not None
                     and (
                         bars.index[-1] < expected
@@ -303,7 +375,7 @@ class Workspace:
                     market,
                     request,
                     stale,
-                    historical,
+                    historical_context,
                 )
                 rows.append(row)
                 points = []
@@ -327,6 +399,7 @@ class Workspace:
                     )
                 charts[instrument.symbol] = ChartResponse(
                     run_id=run_id,
+                    session_profile=profile,
                     symbol=instrument.symbol,
                     price_benchmark=price,
                     volume_benchmark=volume,
@@ -336,10 +409,17 @@ class Workspace:
                     quality=row,
                     points=points,
                 )
-            diagnostics["fetch_failures"] = failures
+            diagnostics = {
+                **next(iter(diagnostics.values())),
+                "session_contexts": diagnostics,
+                "session_policy_version": "nse-continuous-v1",
+                "fetch_failures": failures,
+            }
             snapshot = ScanSnapshot(
                 generated_at=datetime.now(timezone.utc),
-                as_of=benchmark.index[-1].to_pydatetime(),
+                as_of=max(
+                    aligned[price].index[-1] for aligned, _ in contexts.values()
+                ).to_pydatetime(),
                 price_benchmark=price,
                 volume_benchmark=volume,
                 rows=rows,
@@ -350,7 +430,7 @@ class Workspace:
                 charts,
                 snapshot,
                 request,
-                aligned,
+                fetched,
                 daily,
                 list(catalog.values()),
                 run_id,
@@ -370,17 +450,10 @@ class Workspace:
                 self.feed.start()
             return snapshot
 
-    def expected_slot(self, asof):
-        local = pd.Timestamp(asof).tz_convert(TZ) - pd.Timedelta(
-            seconds=self.config["publication_grace_seconds"]
+    def expected_slot(self, asof, profile="nse_cash"):
+        return session_expected_slot(
+            asof, profile, self.config["publication_grace_seconds"]
         )
-        if local.weekday() > 4:
-            return None
-        first = local.normalize() + pd.Timedelta(hours=9, minutes=15)
-        if local < first + pd.Timedelta(minutes=5):
-            return None
-        last = local.normalize() + pd.Timedelta(hours=15, minutes=25)
-        return min(local.floor("5min") - pd.Timedelta(minutes=5), last)
 
     async def reconcile(self):
         previous_slot = None
@@ -391,7 +464,11 @@ class Workspace:
                 continue
             now = pd.Timestamp.now(tz=TZ)
             minutes = now.hour * 60 + now.minute
-            slot = self.expected_slot(now)
+            profiles = {chart.session_profile for chart in self.charts.values()} or {
+                "nse_cash"
+            }
+            slots = [self.expected_slot(now, profile) for profile in profiles]
+            slot = max((value for value in slots if value is not None), default=None)
             if not (now.weekday() < 5 and 560 <= minutes <= 935):
                 continue
             if not self.reconcile_due and slot == previous_slot:

@@ -134,3 +134,76 @@ def test_failed_reconciliation_revokes_scan_direction(tmp_path):
         and w.snapshot.rows[0].quality == "stale"
     )
     assert w.charts["TCS"].quality.quality == "stale"
+
+
+def test_cas_comparison_and_exports_share_session_policy(tmp_path):
+    import io, csv, zipfile
+
+    w = workspace(tmp_path)
+    w.instruments[0] = w.instruments[0].model_copy(
+        update={"session_profile": "nse_cas"}
+    )
+    result = w.scan(
+        ScanRequest(start="2026-08-03T03:45:00Z", end="2026-08-06T10:00:00Z")
+    )
+    chart = w.charts["TCS"]
+    assert chart.session_profile == "nse_cas" and len(chart.points) == 4 * 72
+    assert (
+        pd.Timestamp(chart.points[-1].time, unit="s", tz="UTC")
+        .tz_convert(TZ)
+        .strftime("%H:%M")
+        == "15:10"
+    )
+    assert result.rows[0].rrs == chart.points[-1].features["rrs"]
+    assert (
+        w.expected_slot(pd.Timestamp("2026-08-06 16:00", tz=TZ), "nse_cas").strftime(
+            "%H:%M"
+        )
+        == "15:10"
+    )
+    exported = list(
+        csv.DictReader(io.StringIO(w.export_run.csv("TCS").decode("utf-8-sig")))
+    )
+    assert len(exported) == 288 and exported[-1]["session_profile"] == "nse_cas"
+    with zipfile.ZipFile(io.BytesIO(w.export_run.bundle())) as bundle:
+        manifest = json.loads(bundle.read("manifest.json"))
+        assert manifest["session_profiles_by_symbol"]["TCS"] == "nse_cas"
+        assert "engine/sessions.py" in bundle.namelist()
+        assert "engine/provider.py" in bundle.namelist()
+        proxy = list(
+            csv.DictReader(
+                io.StringIO(bundle.read("inputs/NIFTYBEES_5m.csv").decode("utf-8-sig"))
+            )
+        )
+        assert (
+            len(proxy) == 300
+        )  # Broker source retains the ETF's later trading window.
+
+
+def test_empty_benchmark_can_be_recovered_from_peer_observed_dates(tmp_path):
+    from app.provider import ProviderError
+
+    w = workspace(tmp_path)
+    original = w.provider.fetch
+    calls = []
+
+    def fetch(item, *args, **kwargs):
+        if item.symbol == "NIFTY 50" and kwargs.get("interval", 5) == 5:
+            raise ProviderError("history_empty", "No benchmark candles")
+        return original(item, *args, **kwargs)
+
+    def repair(item, data, start, end, session_dates=None):
+        calls.append((item.symbol, session_dates))
+        result = original(item, start, end)
+        result.attrs["gap_recovery"] = {"requests": 1, "remaining_price_gaps": 0}
+        return result
+
+    w.provider.fetch = fetch
+    w.provider.repair_gaps = repair
+    result = w.scan(
+        ScanRequest(start="2026-08-03T03:45:00Z", end="2026-08-06T10:00:00Z")
+    )
+    assert calls[0][0] == "NIFTY 50" and len(calls[0][1]) == 4
+    assert "NIFTY 50" not in result.diagnostics["fetch_failures"]
+    assert result.rows[0].rrs is not None
+    assert result.diagnostics["NIFTY 50"]["gap_recovery"]["requests"] == 1

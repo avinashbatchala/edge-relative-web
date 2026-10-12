@@ -2,6 +2,7 @@ import json, math, hashlib, time, html
 from pathlib import Path
 import numpy as np
 import pandas as pd
+from .sessions import continuous_mask, continuous_grid
 
 TZ = "Asia/Kolkata"
 COLS = ["open", "high", "low", "close", "volume"]
@@ -424,8 +425,23 @@ def sector_strength(sector, b, p=PARAMS, self_test=False):
     )
 
 
+def candle_timestamp(value):
+    """Interpret broker epochs and naive IST timestamps consistently."""
+    if isinstance(value, (int, float)):
+        return pd.to_datetime(
+            value, unit="ms" if value > 1e11 else "s", utc=True
+        ).tz_convert(TZ)
+    stamp = pd.Timestamp(value)
+    return stamp.tz_localize(TZ) if stamp.tzinfo is None else stamp.tz_convert(TZ)
+
+
 def parse_candles(
-    response, interval=5, now=None, invalid_policy="quarantine", instrument="unknown"
+    response,
+    interval=5,
+    now=None,
+    invalid_policy="quarantine",
+    instrument="unknown",
+    session_profile="nse_cash",
 ):
     """Filter session/completion first; quarantine invalid prices, isolate unavailable volume."""
     import warnings
@@ -446,16 +462,7 @@ def parse_candles(
     for row in rows:
         if len(row) < 5:
             raise ValueError("Malformed candle")
-        stamp = row[0]
-        if isinstance(stamp, (int, float)):
-            stamp = pd.to_datetime(
-                stamp, unit="ms" if stamp > 1e11 else "s", utc=True
-            ).tz_convert(TZ)
-        else:
-            stamp = pd.Timestamp(stamp)
-            stamp = (
-                stamp.tz_localize(TZ) if stamp.tzinfo is None else stamp.tz_convert(TZ)
-            )
+        stamp = candle_timestamp(row[0])
         if pd.isna(stamp):
             raise ValueError("Missing candle timestamp")
         parsed.append([stamp, *row[1:5], row[5] if len(row) > 5 else np.nan])
@@ -464,9 +471,11 @@ def parse_candles(
     now = pd.Timestamp.now(tz=TZ) if now is None else pd.Timestamp(now)
     now = now.tz_localize(TZ) if now.tzinfo is None else now.tz_convert(TZ)
     received = len(d)
+    excluded_noncontinuous = 0
     if interval == 5:
-        mins = d.index.hour * 60 + d.index.minute
-        d = d[(mins >= 555) & (mins < 930)]
+        regular = continuous_mask(d.index, session_profile)
+        excluded_noncontinuous = int((~regular).sum())
+        d = d[regular]
         if ((d.index.minute % 5 != 0) | (d.index.second != 0)).any():
             raise ValueError("Candle timestamps are not on the 5-minute grid")
         d = d[d.index + pd.Timedelta(minutes=5) <= now]
@@ -509,6 +518,9 @@ def parse_candles(
         )
     quality = {
         "instrument": instrument,
+        "session_profile": session_profile,
+        "session_policy_version": "nse-continuous-v1",
+        "excluded_noncontinuous_rows": excluded_noncontinuous,
         "received_rows": received,
         "excluded_session_or_incomplete": excluded,
         "duplicate_rows": duplicates,
@@ -544,30 +556,35 @@ def parse_candles(
     return d
 
 
-def aligned_grid(frames, asof=None):
-    dates = sorted(set(day for d in frames.values() for day in d.index.normalize()))
-    grid = pd.DatetimeIndex([]).tz_localize(TZ)
-    for day in dates:
-        grid = grid.union(
-            pd.date_range(
-                day + pd.Timedelta(hours=9, minutes=15),
-                day + pd.Timedelta(hours=15, minutes=25),
-                freq="5min",
-            )
+def aligned_grid(frames, asof=None, session_profile="nse_cash", start=None, end=None):
+    nonempty = {name: d for name, d in frames.items() if not d.empty}
+    if not nonempty:
+        raise ValueError("No source sessions to align")
+    dates = sorted(set(day for d in nonempty.values() for day in d.index.normalize()))
+    asof = pd.Timestamp.now(tz=TZ) if asof is None else pd.Timestamp(asof)
+    first = (
+        pd.Timestamp(start)
+        if start is not None
+        else min(d.index.min() for d in nonempty.values())
+    )
+    limit = (
+        min(pd.Timestamp(end), asof)
+        if end is not None
+        else min(
+            max(d.index.max() for d in nonempty.values()) + pd.Timedelta(minutes=5),
+            asof,
         )
-    asof = pd.Timestamp.now(tz=TZ) if asof is None else asof
-    first = min(d.index.min() for d in frames.values())
-    last = max(d.index.max() for d in frames.values())
-    grid = grid[
-        (grid >= first) & (grid <= last) & (grid + pd.Timedelta(minutes=5) <= asof)
-    ]
+    )
+    grid = continuous_grid(dates, session_profile, start=first, asof=limit)
     aligned = {name: d.reindex(grid) for name, d in frames.items()}
     report = {
         name: {
             "bars": len(d),
-            "missing_ohlc": int(d.close.isna().sum()),
+            "missing_ohlc": int(d[COLS[:4]].isna().any(axis=1).sum()),
             "missing_or_zero_volume": int((d.volume.isna() | (d.volume <= 0)).sum()),
+            "session_profile": session_profile,
             "parser_diagnostics": d.attrs.get("parser_diagnostics", {}),
+            "gap_recovery": d.attrs.get("gap_recovery", {}),
         }
         for name, d in aligned.items()
     }
