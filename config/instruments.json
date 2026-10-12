@@ -1,10 +1,82 @@
 [
- {"symbol":"TCS","kind":"stock","enabled":true,"sector":"NIFTY IT"},
- {"symbol":"HDFCBANK","kind":"stock","enabled":true,"sector":"NIFTY BANK"},
- {"symbol":"SUNPHARMA","kind":"stock","enabled":true,"sector":"NIFTY PHARMA"},
- {"symbol":"NIFTY 50","kind":"index","groww_symbol":"NSE-NIFTY"},
- {"symbol":"NIFTYBEES","kind":"etf"},
- {"symbol":"NIFTY IT","kind":"index"},
- {"symbol":"NIFTY BANK","kind":"index"},
- {"symbol":"NIFTY PHARMA","kind":"index"}
+  {
+    "symbol": "TCS",
+    "kind": "stock",
+    "enabled": true,
+    "sector": "NIFTY IT",
+    "groww_symbol": "NSE-TCS",
+    "exchange_token": "11536",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "HDFCBANK",
+    "kind": "stock",
+    "enabled": true,
+    "sector": "NIFTY BANK",
+    "groww_symbol": "NSE-HDFCBANK",
+    "exchange_token": "1333",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "SUNPHARMA",
+    "kind": "stock",
+    "enabled": true,
+    "sector": "NIFTY PHARMA",
+    "groww_symbol": "NSE-SUNPHARMA",
+    "exchange_token": "3351",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "NIFTY 50",
+    "kind": "index",
+    "enabled": true,
+    "sector": null,
+    "groww_symbol": "NSE-NIFTY",
+    "exchange_token": "NIFTY",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "NIFTYBEES",
+    "kind": "etf",
+    "enabled": true,
+    "sector": null,
+    "groww_symbol": "NSE-NIFTYBEES",
+    "exchange_token": "10576",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "NIFTY IT",
+    "kind": "index",
+    "enabled": true,
+    "sector": null,
+    "groww_symbol": "NSE-NIFTYIT",
+    "exchange_token": "NIFTYIT",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "NIFTY BANK",
+    "kind": "index",
+    "enabled": true,
+    "sector": null,
+    "groww_symbol": "NSE-BANKNIFTY",
+    "exchange_token": "BANKNIFTY",
+    "exchange": "NSE",
+    "segment": "CASH"
+  },
+  {
+    "symbol": "NIFTY PHARMA",
+    "kind": "index",
+    "enabled": true,
+    "sector": null,
+    "groww_symbol": "NSE-NIFTYPHARMA",
+    "exchange_token": "NIFTYPHARMA",
+    "exchange": "NSE",
+    "segment": "CASH"
+  }
 ]

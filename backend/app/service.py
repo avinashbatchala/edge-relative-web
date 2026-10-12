@@ -87,7 +87,10 @@ class Workspace:
         ):
             state = "stale"
         return Status(
-            configured=self.provider.configured(), feed=state, message=self.message
+            configured=self.provider.configured(),
+            snapshot_available=self.snapshot is not None,
+            feed=state,
+            message=self.message,
         )
 
     async def publish(self, type, payload):

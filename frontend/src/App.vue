@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import {
+  DialogRoot,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "reka-ui";
 import {
   Activity,
   SlidersHorizontal,
@@ -26,10 +35,14 @@ import { fmt, ist } from "./format";
 import UiButton from "./UiButton.vue";
 import DirectionBadge from "./DirectionBadge.vue";
 import ChartWorkspace from "./ChartWorkspace.vue";
+import { createRequestGate, loadLayout, serializeLayout, shouldLoadSnapshot, type WorkspaceLayout } from "./workspace-state";
 const status = ref<Status>();
 const snapshot = ref<Snapshot>();
 const chart = ref<ChartData>();
+const chartLoading = ref(false);
+const chartError = ref("");
 const catalog = ref<Instrument[]>([]);
+const catalogAvailable = ref(false);
 const quotes = ref<Record<string, Quote>>({});
 const view = ref<"scanner" | "chart">("scanner");
 const busy = ref(false);
@@ -64,31 +77,49 @@ let socket: WebSocket | undefined;
 let retry: ReturnType<typeof setTimeout> | undefined;
 let mounted = true;
 let sequence: number | undefined;
-let chartRequest = 0;
 const selected = ref("");
+function loadSavedLayout() {
+  try {
+    return loadLayout(localStorage.getItem("edge-relative:chart-layout"));
+  } catch {
+    return loadLayout(null);
+  }
+}
+const layout = ref<WorkspaceLayout>(loadSavedLayout());
 const transport = ref("connecting");
+const chartRequests = createRequestGate();
 async function openChart(symbol: string) {
   selected.value = symbol;
   view.value = "chart";
-  chart.value = undefined;
-  error.value = "";
-  const token = ++chartRequest;
+  const token = chartRequests.begin();
+  chartError.value = "";
+  if (chart.value?.symbol === symbol) {
+    chartLoading.value = false;
+    return;
+  }
+  chartLoading.value = true;
   try {
     const result = await api.chart(symbol);
-    if (token === chartRequest) chart.value = result;
+    if (chartRequests.isCurrent(token)) chart.value = result;
   } catch (e) {
-    if (token === chartRequest) error.value = (e as Error).message;
+    if (chartRequests.isCurrent(token)) chartError.value = (e as Error).message;
+  } finally {
+    if (chartRequests.isCurrent(token)) chartLoading.value = false;
   }
 }
 async function updateSnapshot(value: Snapshot) {
   snapshot.value = value;
   if (view.value === "chart" && selected.value) {
-    const token = ++chartRequest;
+    const token = chartRequests.begin();
+    const symbol = selected.value;
+    chartLoading.value = true;
     try {
-      const result = await api.chart(selected.value);
-      if (token === chartRequest) chart.value = result;
-    } catch {
-      chart.value = undefined;
+      const result = await api.chart(symbol);
+      if (chartRequests.isCurrent(token)) chart.value = result;
+    } catch (e) {
+      if (chartRequests.isCurrent(token)) chartError.value = (e as Error).message;
+    } finally {
+      if (chartRequests.isCurrent(token)) chartLoading.value = false;
     }
   }
 }
@@ -181,17 +212,33 @@ onMounted(async () => {
       api.health(),
       api.instruments(),
     ]);
-    try {
+    catalogAvailable.value = true;
+    if (shouldLoadSnapshot(status.value))
       await updateSnapshot(await api.snapshot());
-    } catch {
-      /* Truthful empty state before the first fetch. */
-    }
   } catch (e) {
     error.value = (e as Error).message;
   }
 });
+watch(
+  () => [
+    layout.value.sidebarCollapsed,
+    layout.value.compare,
+    layout.value.primaryStudy,
+    layout.value.secondaryStudy,
+    layout.value.priceRatio,
+    layout.value.secondaryRatio,
+  ],
+  () => {
+  try {
+    localStorage.setItem("edge-relative:chart-layout", serializeLayout(layout.value));
+  } catch {
+    /* Presentation preferences are optional when browser storage is unavailable. */
+  }
+  },
+);
 onBeforeUnmount(() => {
   mounted = false;
+  chartRequests.invalidate();
   socket?.close();
   if (retry) clearTimeout(retry);
 });
@@ -228,7 +275,7 @@ function rowTime(row: Row) {
         </button>
       </div>
     </aside>
-    <div class="main">
+    <div class="main" :class="{ 'main-chart': view === 'chart' }">
       <header>
         <div class="title">
           <strong>EDGE RELATIVE</strong><span class="divider"></span
@@ -256,7 +303,7 @@ function rowTime(row: Row) {
             Chart workspace
           </button>
         </div>
-        <div class="date-controls">
+        <div v-if="view === 'scanner'" class="date-controls">
           <label>From<input type="date" v-model="start" /></label
           ><label>To<input type="date" v-model="end" /></label
           ><label class="check"
@@ -268,11 +315,11 @@ function rowTime(row: Row) {
           >
         </div>
       </div>
-      <div v-if="error" class="error" role="alert">
+      <div v-if="error && view === 'scanner'" class="error" role="alert">
         <strong>Unable to complete request</strong><span>{{ error }}</span
         ><button aria-label="Dismiss error" @click="error = ''">×</button>
       </div>
-      <div v-if="status && !status.configured" class="setup-banner">
+      <div v-if="status && !status.configured && view === 'scanner'" class="setup-banner">
         <Activity :size="18" />
         <div>
           <strong>Connect Groww to get started</strong
@@ -459,73 +506,51 @@ function rowTime(row: Row) {
           </div>
         </section>
       </template>
-      <section v-else class="chart-panel">
-        <div class="chart-selector">
-          <label
-            >Instrument
-            <select
-              :value="selected"
-              @change="openChart(($event.target as HTMLSelectElement).value)"
-            >
-              <option value="" disabled>Select an instrument</option>
-              <option v-for="row in snapshot?.rows || []" :value="row.symbol">
-                {{ row.symbol }}
-              </option>
-            </select></label
-          ><DirectionBadge
-            v-if="chart"
-            :direction="chart.quality.direction"
-          /><span v-if="chart" class="small muted"
-            >{{ chart.quality.quality }} ·
-            {{ (chart.quality.reasons || []).join(" · ") }}</span
-          >
-        </div>
-        <ChartWorkspace
-          v-if="chart"
-          :data="chart"
-          :quote="chart.quality.quality!=='historical' && status?.feed==='connected' ? quotes[chart.symbol] : undefined"
-        />
-        <div v-else class="empty">
-          <ChartNoAxesCombined :size="32" />
-          <h3>
-            {{
-              selected && snapshot
-                ? "Loading chart…"
-                : "Choose an instrument from the scanner"
-            }}
-          </h3>
-          <p>The chart and scanner share the same Python calculations.</p>
-          <UiButton @click="view = 'scanner'">Open scanner</UiButton>
-        </div>
-      </section>
-      <footer>
+      <ChartWorkspace
+        v-else
+        :data="chart"
+        :selected-symbol="selected"
+        :rows="snapshot?.rows || []"
+        :snapshot="snapshot"
+        :status="status"
+        :catalog-available="catalogAvailable"
+        :transport="transport"
+        :quote="status?.feed === 'connected' && selected ? quotes[selected] : undefined"
+        :loading="chartLoading"
+        :request-error="chartError"
+        :busy="busy"
+        :live-mode="live"
+        :layout="layout"
+        @update:layout="layout = $event"
+        @select-symbol="openChart"
+        @fetch="fetchData"
+        @settings="details = true"
+        @toggle-live="live = $event"
+        @scanner="view = 'scanner'; details = !catalogAvailable"
+      />
+      <footer v-if="view === 'scanner'">
         <span
           ><span class="dot"></span
           >{{ status?.message || "Connecting to backend…" }}</span
         ><span>Research observations · Asia/Kolkata</span>
       </footer>
     </div>
-    <div v-if="details" class="overlay" @click.self="details = false">
-      <section
-        class="dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settings-title"
-      >
+    <DialogRoot :open="details" @update:open="details = $event">
+      <DialogPortal>
+        <DialogOverlay class="overlay" />
+        <DialogContent class="dialog" aria-labelledby="settings-title">
         <div class="dialog-heading">
-          <h2 id="settings-title">Workspace & data quality</h2>
-          <button
-            class="icon-button"
-            aria-label="Close settings"
-            @click="details = false"
-          >
+          <DialogTitle id="settings-title">Workspace & data quality</DialogTitle>
+          <DialogClose as-child>
+            <button class="icon-button" aria-label="Close settings">
             <X :size="20" />
           </button>
+          </DialogClose>
         </div>
-        <p class="muted">
+        <DialogDescription class="muted">
           Instrument identities are resolved against Groww's master and saved
           for future runs.
-        </p>
+        </DialogDescription>
         <UiButton :busy="busy" @click="sync"
           ><RefreshCw :size="14" />Sync instrument identities</UiButton
         >
@@ -539,6 +564,26 @@ function rowTime(row: Row) {
           </div>
         </div>
         <div class="settings-form">
+          <template v-if="view === 'chart'">
+            <label>
+              Fetch start date
+              <input type="date" v-model="start" aria-label="Chart scan start date" />
+            </label>
+            <label>
+              Fetch end date
+              <input type="date" v-model="end" aria-label="Chart scan end date" />
+            </label>
+            <label class="settings-inline-switch">
+              Include live feed on the next fetch
+              <input type="checkbox" v-model="live" />
+            </label>
+            <UiButton primary :busy="busy" @click="fetchData">
+              <RefreshCw :size="14" /> Fetch confirmed history
+            </UiButton>
+            <UiButton @click="view = 'scanner'; details = false">
+              <Table2 :size="14" /> Open full scanner
+            </UiButton>
+          </template>
           <label
             >Price benchmark<select v-model="priceBenchmark">
               <option
@@ -596,7 +641,8 @@ function rowTime(row: Row) {
           <summary>Fetch diagnostics</summary>
           <pre>{{ snapshot?.diagnostics || "No fetch completed yet." }}</pre>
         </details>
-      </section>
-    </div>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
   </div>
 </template>

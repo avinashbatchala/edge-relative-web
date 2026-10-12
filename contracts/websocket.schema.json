@@ -326,6 +326,11 @@
           "title": "Configured",
           "type": "boolean"
         },
+        "snapshot_available": {
+          "default": false,
+          "title": "Snapshot Available",
+          "type": "boolean"
+        },
         "feed": {
           "default": "disabled",
           "enum": [

@@ -198,6 +198,22 @@
           }
         }
       }
+    },
+    "/": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -797,6 +813,11 @@
           "configured": {
             "type": "boolean",
             "title": "Configured"
+          },
+          "snapshot_available": {
+            "type": "boolean",
+            "title": "Snapshot Available",
+            "default": false
           },
           "feed": {
             "type": "string",

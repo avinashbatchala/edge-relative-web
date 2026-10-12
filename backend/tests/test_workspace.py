@@ -85,6 +85,13 @@ def test_chart_and_scanner_share_exact_completed_values(tmp_path):
     assert "NaN" not in result.model_dump_json()
 
 
+def test_status_reports_whether_a_confirmed_snapshot_exists(tmp_path):
+    w = workspace(tmp_path)
+    assert w.status().snapshot_available is False
+    w.scan(ScanRequest(start="2026-08-03T03:45:00Z", end="2026-08-06T10:00:00Z"))
+    assert w.status().snapshot_available is True
+
+
 def test_missing_sector_filter_fails_closed(tmp_path):
     w = workspace(tmp_path)
     w.instruments[0] = w.instruments[0].model_copy(update={"sector": "UNKNOWN"})

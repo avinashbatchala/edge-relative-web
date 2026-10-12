@@ -71,6 +71,7 @@ class ScannerRow(Contract):
 class Status(Contract):
     provider: Literal["groww"] = "groww"
     configured: bool
+    snapshot_available: bool = False
     feed: Literal["disabled", "connecting", "connected", "stale", "disconnected"] = (
         "disabled"
     )
