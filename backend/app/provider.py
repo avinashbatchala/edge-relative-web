@@ -176,7 +176,13 @@ class GrowwProvider:
                 temporary.write_text(json.dumps(response))
                 temporary.replace(file)
             chunks.append((file, cursor, stop, response, immutable))
-            rows.extend(payload["candles"])
+            # Groww includes the end timestamp and may return a partial boundary
+            # candle. Let the next chunk own that candle rather than combining
+            # incompatible endpoint observations. In-chunk duplicates still fail.
+            rows.extend(
+                row for row in payload["candles"]
+                if interval != 5 or cursor <= candle_timestamp(row[0]) < stop
+            )
             cursor = stop
         if not rows and interval != 5:
             raise ProviderError(
