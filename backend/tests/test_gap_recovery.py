@@ -213,6 +213,31 @@ def test_all_quarantined_prices_are_recoverable(tmp_path, monkeypatch):
     assert data.attrs["gap_recovery"]["recovered_price_bars"] == 72
 
 
+def test_chunk_endpoint_is_owned_by_next_request(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
+    start = pd.Timestamp("2026-08-03 09:15", tz=TZ)
+    end = pd.Timestamp("2026-09-15 15:15", tz=TZ)
+    stamps = continuous_grid(pd.date_range(start.normalize(), end.normalize()), INSTRUMENT)
+
+    class InclusiveAPI:
+        CANDLE_INTERVAL_MIN_5 = "5minute"
+
+        def get_historical_candles(self, start_time, end_time, **kwargs):
+            left = pd.Timestamp(start_time, tz=TZ)
+            right = pd.Timestamp(end_time, tz=TZ)
+            return {"candles": [
+                [stamp.isoformat(), 100, 101, 99, 100, 1 if stamp == right else 1000]
+                for stamp in stamps if left <= stamp <= right
+            ]}
+
+    provider = GrowwProvider(tmp_path)
+    provider.api = InclusiveAPI()
+    data = provider.fetch(INSTRUMENT, start, end)
+    boundary = start + pd.Timedelta(days=29)
+    assert data.loc[boundary, "volume"] == 1000
+    assert len(data) == len(stamps) and data.close.notna().all()
+
+
 def test_empty_response_retains_cache_for_peer_recovery(tmp_path, monkeypatch):
     monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
     rows = complete_rows()
