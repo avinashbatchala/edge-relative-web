@@ -5,6 +5,7 @@ from app.contracts import Instrument
 from app.provider import GrowwProvider
 from app.indicators import COLS, TZ, parse_candles
 from app.sessions import continuous_grid
+import pytest
 
 INSTRUMENT = Instrument(
     symbol="TCS",
@@ -198,3 +199,110 @@ def test_peer_session_repair_updates_historical_cache(tmp_path, monkeypatch):
     calls = len(provider.api.calls)
     again = provider.fetch(INSTRUMENT, START, end)
     assert len(again) == 144 and len(provider.api.calls) == calls
+
+
+def test_all_quarantined_prices_are_recoverable(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
+    rows = complete_rows()
+    invalid = [[r[0], 0, 0, 0, 0, r[5]] for r in rows]
+    provider = GrowwProvider(tmp_path)
+    provider.api = API(invalid, rows)
+    data = provider.fetch(INSTRUMENT, START, END)
+    assert data.close.notna().all() and len(data) == 72
+    assert data.attrs["parser_diagnostics"]["quarantined_price_rows"] == 72
+    assert data.attrs["gap_recovery"]["recovered_price_bars"] == 72
+
+
+def test_empty_response_retains_cache_for_peer_recovery(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
+    rows = complete_rows()
+    provider = GrowwProvider(tmp_path)
+    provider.api = API([], rows)
+    empty = provider.fetch(INSTRUMENT, START, END)
+    assert empty.empty and empty.attrs["_cache_chunks"]
+    recovered = provider.repair_gaps(
+        INSTRUMENT, empty, START, END, session_dates=[START.normalize()]
+    )
+    assert recovered.close.notna().all() and len(recovered) == 72
+    calls = len(provider.api.calls)
+    again = provider.fetch(INSTRUMENT, START, END)
+    assert again.close.notna().all() and len(provider.api.calls) == calls
+
+
+def test_auction_only_response_waits_for_peer_observed_session(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
+    auction = [[END.isoformat(), 100, 101, 99, 100, 1000]]
+    provider = GrowwProvider(tmp_path)
+    provider.api = API(auction, complete_rows())
+    empty = provider.fetch(INSTRUMENT, START, END + pd.Timedelta(minutes=5))
+    assert empty.empty and len(provider.api.calls) == 1
+    assert empty.attrs["parser_diagnostics"]["excluded_noncontinuous_rows"] == 1
+    recovered = provider.repair_gaps(
+        INSTRUMENT, empty, START, END, session_dates=[START.normalize()]
+    )
+    assert len(recovered) == 72 and recovered.close.notna().all()
+
+
+def test_allow_unusable_does_not_accept_conflicting_duplicates(tmp_path, monkeypatch):
+    import pytest
+    from app.provider import ProviderError
+
+    monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
+    rows = complete_rows()
+    duplicate = rows[0].copy()
+    duplicate[4] += 0.5
+    provider = GrowwProvider(tmp_path)
+    provider.api = API([*rows, duplicate], rows)
+    with pytest.raises(ProviderError) as error:
+        provider.fetch(INSTRUMENT, START, END)
+    assert error.value.code == "history_invalid" and len(provider.api.calls) == 1
+
+
+@pytest.mark.parametrize("initial_kind", ["empty", "invalid", "auction"])
+def test_peer_recovered_benchmark_scan_exports_and_cache(
+    tmp_path, monkeypatch, initial_kind
+):
+    import csv, io, json, zipfile
+    from app.contracts import ScanRequest
+    from app.service import Workspace
+
+    monkeypatch.setattr("app.provider.time.sleep", lambda _: None)
+    rows = complete_rows()
+    initial = {
+        "empty": [],
+        "invalid": [[r[0], 0, 0, 0, 0, r[5]] for r in rows],
+        "auction": [[END.isoformat(), 100, 101, 99, 100, 1000]],
+    }[initial_kind]
+    catalog = [
+        INSTRUMENT,
+        INSTRUMENT.model_copy(update={"symbol": "NIFTY 50", "kind": "index"}),
+        INSTRUMENT.model_copy(update={"symbol": "NIFTYBEES", "kind": "etf"}),
+    ]
+    # Distinct broker identities must have distinct cache keys.
+    catalog = [
+        item.model_copy(update={"groww_symbol": item.symbol}) for item in catalog
+    ]
+    (tmp_path / "instruments.json").write_text(
+        json.dumps([item.model_dump() for item in catalog])
+    )
+    workspace = Workspace(tmp_path, tmp_path / "cache")
+    workspace.provider.api = API(initial, rows)
+    request = ScanRequest(start=START.to_pydatetime(), end=END.to_pydatetime())
+    snapshot = workspace.scan(request)
+    chart = workspace.charts["TCS"]
+    assert chart.quality == snapshot.rows[0]
+    assert chart.points[-1].close == snapshot.rows[0].close
+    assert chart.points[-1].features["rrs"] == snapshot.rows[0].rrs
+    assert workspace.export_run.inputs["NIFTY 50"].close.notna().all()
+    exported = list(
+        csv.DictReader(io.StringIO(workspace.export_run.csv("TCS").decode("utf-8-sig")))
+    )
+    assert (
+        len(exported) == 72 and float(exported[-1]["close"]) == chart.points[-1].close
+    )
+    with zipfile.ZipFile(io.BytesIO(workspace.export_run.bundle())) as bundle:
+        assert bundle.read("results/TCS.csv") == workspace.export_run.csv("TCS")
+        assert json.loads(bundle.read("manifest.json"))["request"]["live"] is False
+    calls = len(workspace.provider.api.calls)
+    workspace.scan(request)
+    assert len(workspace.provider.api.calls) == calls
