@@ -68,8 +68,9 @@ class FeedWorker:
 
                 self.state = "connecting"
                 self.emit("feed_status", {"state": self.state})
+                api = self.provider.connect()
                 if self.provider.feed_client is None:
-                    self.provider.feed_client = GrowwFeed(self.provider.connect())
+                    self.provider.feed_client = GrowwFeed(api)
                 self.feed = self.provider.feed_client
 
                 def receive(index=False):
@@ -102,6 +103,8 @@ class FeedWorker:
                 # SDK 1.5 starts its own daemon socket thread during construction.
                 # Keep our lifecycle monitor cancellable instead of joining consume().
                 while not self.stop_event.wait(1):
+                    if self.provider.connect() is not api:
+                        break
                     if (
                         self.state == "connected"
                         and time.monotonic() - self.last_seen > 60
