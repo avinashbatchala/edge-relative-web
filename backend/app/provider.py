@@ -1,8 +1,11 @@
 """Groww history adapter. Credentials stay in memory; cache contains market data only."""
 
 import hashlib
+import base64
 import json
+import math
 import os
+import threading
 import time
 from pathlib import Path
 import pandas as pd
@@ -24,34 +27,72 @@ class GrowwProvider:
         cache.mkdir(parents=True, exist_ok=True)
         self.api = None
         self.feed_client = None
+        self._auth_lock = threading.Lock()
+        self._refresh_at = None
 
     @staticmethod
     def configured():
         return bool(
+            (os.getenv("GROWW_TOTP_TOKEN") and os.getenv("GROWW_TOTP_SECRET"))
+            or
             os.getenv("GROWW_ACCESS_TOKEN")
             or (os.getenv("GROWW_API_KEY") and os.getenv("GROWW_API_SECRET"))
         )
 
     def connect(self):
-        if self.api is not None:
+        with self._auth_lock:
+            return self._connect()
+
+    def _connect(self):
+        if self.api is not None and (
+            self._refresh_at is None or time.time() < self._refresh_at
+        ):
             return self.api
         if not self.configured():
             raise ProviderError(
                 "credentials_missing",
-                "Set GROWW_ACCESS_TOKEN or GROWW_API_KEY and GROWW_API_SECRET on the backend.",
+                "Set GROWW_TOTP_TOKEN and GROWW_TOTP_SECRET, GROWW_ACCESS_TOKEN, or GROWW_API_KEY and GROWW_API_SECRET on the backend.",
             )
         try:
             from growwapi import GrowwAPI
 
-            token = os.getenv("GROWW_ACCESS_TOKEN") or GrowwAPI.get_access_token(
-                api_key=os.environ["GROWW_API_KEY"],
-                secret=os.environ["GROWW_API_SECRET"],
-            )
-            self.api = GrowwAPI(token)
+            automatic = bool(os.getenv("GROWW_TOTP_TOKEN") and os.getenv("GROWW_TOTP_SECRET"))
+            if automatic:
+                import pyotp
+
+                token = GrowwAPI.get_access_token(
+                    api_key=os.environ["GROWW_TOTP_TOKEN"],
+                    totp=pyotp.TOTP(os.environ["GROWW_TOTP_SECRET"]).now(),
+                )
+            else:
+                token = os.getenv("GROWW_ACCESS_TOKEN") or GrowwAPI.get_access_token(
+                    api_key=os.environ["GROWW_API_KEY"],
+                    secret=os.environ["GROWW_API_SECRET"],
+                )
+            api = GrowwAPI(token)
+            refresh_at = None
+            if automatic or not os.getenv("GROWW_ACCESS_TOKEN"):
+                # Tokens expire at 06:00 IST. Prefer the server's JWT expiry
+                # when earlier; decoded claims are scheduling hints only.
+                now = pd.Timestamp.now(tz=TZ)
+                boundary = now.normalize() + pd.Timedelta(hours=6)
+                if now >= boundary:
+                    boundary += pd.Timedelta(days=1)
+                refresh_at = boundary.timestamp()
+                try:
+                    payload = token.split(".")[1]
+                    expiry = float(json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))["exp"])
+                    if math.isfinite(expiry) and expiry > time.time():
+                        refresh_at = min(refresh_at, expiry)
+                except (ValueError, TypeError, KeyError, IndexError, UnicodeError):
+                    pass
+            self.api = api
+            self._refresh_at = refresh_at
+            self.feed_client = None
             return self.api
         except ImportError:
             raise ProviderError(
-                "sdk_missing", "Install backend requirements, including growwapi."
+                "sdk_missing", "Install backend requirements, including growwapi and pyotp."
             ) from None
         except Exception:
             raise ProviderError(

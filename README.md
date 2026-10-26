@@ -7,11 +7,20 @@ A small local FastAPI + Vue 3/TypeScript application. Groww is the sole runtime 
 Requires Python 3.11+ (3.12 recommended). Node 22.18+ is needed to edit/build the frontend or run its tests. The archive includes the compiled frontend, so Node is optional for simply running it.
 
 1. Extract the archive and open a terminal in `edge-relative-web`.
-2. Copy `.env.example` to `.env`, then fill in `GROWW_API_KEY` and `GROWW_API_SECRET`, or `GROWW_ACCESS_TOKEN`. Complete Groww's required key approval and ensure historical/live data access is enabled for your account. Keep this file local.
+2. Copy `.env.example` to `.env`, then fill in `GROWW_TOTP_TOKEN` and `GROWW_TOTP_SECRET` for automatic authentication (see below). Alternatively use `GROWW_API_KEY` and `GROWW_API_SECRET` with daily approval, or a manually renewed `GROWW_ACCESS_TOKEN`. Ensure historical/live data access is enabled for your account. Keep this file local.
 3. Run `bash run.sh`. The first run creates a virtual environment and installs backend dependencies.
 4. Open **http://127.0.0.1:8000** and click **Fetch / refresh**. Instrument names resolve against Groww's master on the first fetch and are saved to JSON.
 
-On Windows, use WSL for the script or run manually:
+On Windows, run the PowerShell launcher:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run.ps1
+# Optional: .\run.ps1 -Port 8001 -PythonBin C:\Python312\python.exe
+```
+
+It creates a Windows virtual environment, installs dependencies when requirements change, builds the frontend if missing, and loads `.env`. Python 3.11+ must be installed; Node 22.18+ is needed if the frontend needs building. Stop with Ctrl+C.
+
+Or run manually:
 
 ```bash
 python -m venv .venv
@@ -21,6 +30,12 @@ python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --
 ```
 
 Use one worker. The service is intended for one local user and binds to loopback; it does not implement public-server authentication.
+
+### Automatic Groww authentication
+
+In Groww Cloud API Keys, open the **Generate API key** dropdown and select **Generate TOTP token**. Copy the resulting TOTP token into `GROWW_TOTP_TOKEN` and its base32 secret into `GROWW_TOTP_SECRET` in `.env`. Use the secret itself, not a QR image or six-digit code. Install the updated backend requirements and restart once.
+
+The backend uses `pyotp` to generate codes and obtain access tokens automatically. Complete TOTP credentials take precedence over legacy credentials. Tokens stay in memory and renew on the next connection at expiry (JWT expiry or the next 06:00 Asia/Kolkata boundary); the live feed reconnects with the renewed client. No daily manual approval is needed with the TOTP flow described in [Groww's Python SDK documentation](https://groww.in/trade-api/docs/python-sdk). Revoked credentials or subscription issues still require attention. Keep the computer clock synchronized.
 
 ## Workspace
 

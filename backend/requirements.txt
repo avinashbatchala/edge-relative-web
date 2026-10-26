@@ -4,4 +4,5 @@ pydantic>=2.9,<3
 pandas>=2.2,<3
 numpy>=1.26,<3
 growwapi==1.5.0
+pyotp>=2.9,<3
 python-dotenv>=1,<2

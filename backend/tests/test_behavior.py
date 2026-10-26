@@ -53,7 +53,7 @@ def test_time_range_validated():
 
 
 def test_health_and_no_credentials_no_fallback(monkeypatch, tmp_path):
-    for name in ["GROWW_ACCESS_TOKEN", "GROWW_API_KEY", "GROWW_API_SECRET"]:
+    for name in ["GROWW_ACCESS_TOKEN", "GROWW_API_KEY", "GROWW_API_SECRET", "GROWW_TOTP_TOKEN", "GROWW_TOTP_SECRET"]:
         monkeypatch.delenv(name, raising=False)
     with TestClient(create_app(config_dir=tmp_path)) as client:
         assert client.get("/api/v1/health").json()["provider"] == "groww"
