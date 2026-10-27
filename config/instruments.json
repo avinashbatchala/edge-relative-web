@@ -1,90 +1,83 @@
 [
   {
-    "symbol": "TCS",
+    "symbol": "AAPL",
     "kind": "stock",
     "enabled": true,
-    "sector": "NIFTY IT",
-    "groww_symbol": "NSE-TCS",
-    "exchange_token": "11536",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "sector": "XLK",
+    "schwab_symbol": "AAPL",
+    "exchange": "NASDAQ",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "HDFCBANK",
+    "symbol": "MSFT",
     "kind": "stock",
     "enabled": true,
-    "sector": "NIFTY BANK",
-    "groww_symbol": "NSE-HDFCBANK",
-    "exchange_token": "1333",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "sector": "XLK",
+    "schwab_symbol": "MSFT",
+    "exchange": "NASDAQ",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "SUNPHARMA",
+    "symbol": "NVDA",
     "kind": "stock",
     "enabled": true,
-    "sector": "NIFTY PHARMA",
-    "groww_symbol": "NSE-SUNPHARMA",
-    "exchange_token": "3351",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "sector": "XLK",
+    "schwab_symbol": "NVDA",
+    "exchange": "NASDAQ",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "NIFTY 50",
-    "kind": "index",
+    "symbol": "JPM",
+    "kind": "stock",
     "enabled": true,
-    "sector": null,
-    "groww_symbol": "NSE-NIFTY",
-    "exchange_token": "NIFTY",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "sector": "XLF",
+    "schwab_symbol": "JPM",
+    "exchange": "NYSE",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "NIFTYBEES",
+    "symbol": "JNJ",
+    "kind": "stock",
+    "enabled": true,
+    "sector": "XLV",
+    "schwab_symbol": "JNJ",
+    "exchange": "NYSE",
+    "session_profile": "us_regular"
+  },
+  {
+    "symbol": "SPY",
     "kind": "etf",
     "enabled": true,
     "sector": null,
-    "groww_symbol": "NSE-NIFTYBEES",
-    "exchange_token": "10576",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cash"
+    "schwab_symbol": "SPY",
+    "exchange": "NYSEARCA",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "NIFTY IT",
-    "kind": "index",
+    "symbol": "XLK",
+    "kind": "etf",
     "enabled": true,
     "sector": null,
-    "groww_symbol": "NSE-NIFTYIT",
-    "exchange_token": "NIFTYIT",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "schwab_symbol": "XLK",
+    "exchange": "NYSEARCA",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "NIFTY BANK",
-    "kind": "index",
+    "symbol": "XLF",
+    "kind": "etf",
     "enabled": true,
     "sector": null,
-    "groww_symbol": "NSE-BANKNIFTY",
-    "exchange_token": "BANKNIFTY",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "schwab_symbol": "XLF",
+    "exchange": "NYSEARCA",
+    "session_profile": "us_regular"
   },
   {
-    "symbol": "NIFTY PHARMA",
-    "kind": "index",
+    "symbol": "XLV",
+    "kind": "etf",
     "enabled": true,
     "sector": null,
-    "groww_symbol": "NSE-NIFTYPHARMA",
-    "exchange_token": "NIFTYPHARMA",
-    "exchange": "NSE",
-    "segment": "CASH",
-    "session_profile": "nse_cas"
+    "schwab_symbol": "XLV",
+    "exchange": "NYSEARCA",
+    "session_profile": "us_regular"
   }
 ]

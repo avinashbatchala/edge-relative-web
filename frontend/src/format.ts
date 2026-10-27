@@ -4,16 +4,16 @@ export const fmt = (value: unknown, digits = 2) => {
   const n = numeric(value);
   return n === null
     ? "—"
-    : n.toLocaleString("en-IN", {
+    : n.toLocaleString("en-US", {
         minimumFractionDigits: digits,
         maximumFractionDigits: digits,
       });
 };
-export const ist = (epoch: number | null | undefined) =>
+export const et = (epoch: number | null | undefined) =>
   epoch == null
     ? "—"
-    : new Date(epoch * 1000).toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
+    : new Date(epoch * 1000).toLocaleString("en-US", {
+        timeZone: "America/New_York",
         day: "2-digit",
         month: "short",
         hour: "2-digit",

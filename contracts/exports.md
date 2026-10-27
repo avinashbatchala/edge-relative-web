@@ -1,6 +1,6 @@
 # Diagnostic export contract — version 2.0
 
-Exports preserve the complete **loaded scan**, independent of zoom, pane visibility, selected study, and replay position. No broker fetch or calculation is triggered during export. No provisional LTP quotes are exported. Data is sourced exclusively from the current captured Groww scan; deterministic input providers exist only in tests.
+Exports preserve the complete **loaded scan**, independent of zoom, pane visibility, selected study, and replay position. No broker fetch or calculation is triggered during export. No provisional LTP quotes are exported. Data is sourced exclusively from the current captured Schwab scan; deterministic input providers exist only in tests.
 
 ## Endpoints
 
@@ -19,7 +19,7 @@ UTF-8 with BOM for spreadsheet compatibility. Standard quoted CSV with CRLF row 
 Each row includes:
 
 - Export version, run ID, symbol, provider, request range, scan generation time, interval, session profile/policy/phase and units.
-- Beginning-of-candle epoch seconds, UTC/IST timestamps with offsets, IST session date, end-of-candle UTC time.
+- Beginning-of-candle epoch seconds, UTC/ET timestamps with offsets, ET session date, end-of-candle UTC time.
 - Stock open/high/low/close/volume and availability flags.
 - Price benchmark, volume benchmark and sector benchmark identities and their aligned OHLCV.
 - RRS, RRV and relative **volatility** expansion, all their correlations and original bull/bear event flags.
@@ -60,6 +60,7 @@ The bundle supports checking alignment, warmup, missingness, formula continuity 
 
 ## Continuous session policy
 
-`session_policy_version=nse-continuous-v1`; `session_profile` identifies the shared calculation window and `session_phase=continuous` for every result row. `nse_cas` has 72 five-minute slots (09:15 through 15:10) from 2026-08-03; earlier dates and `nse_cash` have 75 (through 15:25). A mixed-profile comparison uses the earliest configured continuous close. Instrument metadata records each source profile, while `session_profiles_by_symbol` in the manifest records each result profile.
+`session_policy_version=us-regular-v1`; `session_profile=us_regular` and `session_phase=continuous`. Full trading days have 78 five-minute slots, 09:30 through 15:55 in America/New_York. Exported local timestamps include the applicable daylight saving offset.
 
-Missing expected slots remain null unless Groww supplies a validated repair. Recovery diagnostics distinguish verified price/volume repairs from remaining holes and do not retain broker exceptions or credentials. Parser quarantine counts describe the original response; current missingness counts describe the post-recovery input. Noncontinuous/auction rows do not count as missing or invalid continuous candles. Daily benchmark history remains the completed official Daily input, including its official closing auction price where applicable.
+
+Missing expected slots remain null unless Schwab supplies a validated repair. Recovery diagnostics distinguish verified price/volume repairs from remaining holes and do not retain broker exceptions or credentials. Parser quarantine counts describe the original response; current missingness counts describe the post-recovery input. Noncontinuous/auction rows do not count as missing or invalid continuous candles. Daily benchmark history remains the completed official Daily input, including its official closing auction price where applicable.

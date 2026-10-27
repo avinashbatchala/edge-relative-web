@@ -2,7 +2,7 @@
 from app.indicators import *
 
 
-def synthetic_data(symbols=("TCS", "HDFCBANK", "SUNPHARMA")):
+def synthetic_data(symbols=("AAPL", "HDFCBANK", "SUNPHARMA")):
     rng = np.random.default_rng(42)
     days = pd.bdate_range("2026-08-03", periods=14, tz=TZ)
     idx = pd.DatetimeIndex(
@@ -10,7 +10,7 @@ def synthetic_data(symbols=("TCS", "HDFCBANK", "SUNPHARMA")):
             t
             for day in days
             for t in pd.date_range(
-                day + pd.Timedelta(hours=9, minutes=15), periods=75, freq="5min"
+                day + pd.Timedelta(hours=9, minutes=30), periods=78, freq="5min"
             )
         ]
     )

@@ -87,8 +87,8 @@
           "type": "string"
         },
         "timezone": {
-          "const": "Asia/Kolkata",
-          "default": "Asia/Kolkata",
+          "const": "America/New_York",
+          "default": "America/New_York",
           "title": "Timezone",
           "type": "string"
         },
@@ -317,8 +317,8 @@
       "additionalProperties": false,
       "properties": {
         "provider": {
-          "const": "groww",
-          "default": "groww",
+          "const": "schwab",
+          "default": "schwab",
           "title": "Provider",
           "type": "string"
         },

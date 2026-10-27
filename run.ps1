@@ -54,6 +54,40 @@ try {
                     break
                 }
             }
+            # winget installs may not be on PATH in an already open terminal.
+            if (-not $selectedPython) {
+                $pythonPaths = @()
+                foreach ($registryRoot in @(
+                    'HKCU:\Software\Python\PythonCore',
+                    'HKLM:\Software\Python\PythonCore',
+                    'HKLM:\Software\WOW6432Node\Python\PythonCore'
+                )) {
+                    foreach ($entry in @(Get-ChildItem -LiteralPath $registryRoot -ErrorAction SilentlyContinue)) {
+                        $installKey = Get-Item -LiteralPath ($entry.PSPath + '\InstallPath') -ErrorAction SilentlyContinue
+                        if ($installKey) {
+                            $executable = $installKey.GetValue('ExecutablePath')
+                            if ($executable) { $pythonPaths += $executable }
+                            $directory = $installKey.GetValue('')
+                            if ($directory) { $pythonPaths += Join-Path $directory 'python.exe' }
+                        }
+                    }
+                }
+                foreach ($installRoot in @(
+                    (Join-Path $env:LOCALAPPDATA 'Programs\Python'),
+                    (Join-Path $env:LOCALAPPDATA 'Python'),
+                    $env:ProgramFiles
+                )) {
+                    foreach ($directory in @(Get-ChildItem -LiteralPath $installRoot -Directory -Filter '*Python*' -ErrorAction SilentlyContinue)) {
+                        $pythonPaths += Join-Path $directory.FullName 'python.exe'
+                    }
+                }
+                foreach ($executable in @($pythonPaths | Select-Object -Unique)) {
+                    if ((Test-Path -LiteralPath $executable) -and (Test-SupportedPython $executable)) {
+                        $selectedPython = $executable
+                        break
+                    }
+                }
+            }
         }
         if (-not $selectedPython) {
             throw 'Install Python 3.11+ (3.12 recommended), enable its launcher or PATH entry, and rerun. You can also pass -PythonBin C:\path\to\python.exe.'
@@ -77,6 +111,21 @@ try {
     if (-not (Test-Path -LiteralPath 'frontend\dist\index.html')) {
         $npm = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $npm) {
+            foreach ($nodeDirectory in @(
+                (Join-Path $env:ProgramFiles 'nodejs'),
+                (Join-Path $env:LOCALAPPDATA 'Programs\nodejs'),
+                (Join-Path $env:LOCALAPPDATA 'nodejs')
+            )) {
+                $npmPath = Join-Path $nodeDirectory 'npm.cmd'
+                if (Test-Path -LiteralPath $npmPath) {
+                    # npm's build scripts also need node on the child process PATH.
+                    $env:Path = $nodeDirectory + [IO.Path]::PathSeparator + $env:Path
+                    $npm = Get-Command $npmPath -CommandType Application
+                    break
+                }
+            }
+        }
+        if (-not $npm) {
             throw 'The frontend needs building. Install Node.js 22.18+ with npm, then rerun this script.'
         }
         Write-Host 'Building frontend...'
@@ -86,7 +135,7 @@ try {
 
     if (-not (Test-Path -LiteralPath '.env')) {
         Copy-Item -LiteralPath '.env.example' -Destination '.env'
-        Write-Host 'Created .env. Add your Groww credentials there and restart to enable data access.'
+        Write-Host 'Created .env. Add your Schwab credentials there and restart to enable data access.'
     }
 
     Write-Host "Starting http://127.0.0.1:$Port (Ctrl+C to stop)"
