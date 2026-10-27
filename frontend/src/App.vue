@@ -31,7 +31,7 @@ import type {
   Event,
   Row,
 } from "./types";
-import { fmt, ist } from "./format";
+import { fmt, et } from "./format";
 import UiButton from "./UiButton.vue";
 import DirectionBadge from "./DirectionBadge.vue";
 import ChartWorkspace from "./ChartWorkspace.vue";
@@ -54,8 +54,8 @@ const end = ref(new Date().toISOString().slice(0, 10));
 const start = ref(
   new Date(Date.now() - 20 * 86400000).toISOString().slice(0, 10),
 );
-const priceBenchmark = ref("NIFTY 50");
-const volumeBenchmark = ref("NIFTYBEES");
+const priceBenchmark = ref("SPY");
+const volumeBenchmark = ref("SPY");
 const length = ref(12);
 const smoothing = ref(3);
 const atr = ref(14);
@@ -131,10 +131,10 @@ async function fetchData() {
     const requestedEnd =
       end.value === now.toISOString().slice(0, 10)
         ? now.toISOString()
-        : end.value + "T15:30:00+05:30";
+        : end.value + "T23:59:59Z";
     await updateSnapshot(
       await api.scan({
-        start: start.value + "T09:15:00+05:30",
+        start: start.value + "T00:00:00Z",
         end: requestedEnd,
         refresh: true,
         live: live.value && end.value === now.toISOString().slice(0, 10),
@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
   if (retry) clearTimeout(retry);
 });
 function rowTime(row: Row) {
-  return ist(row.candle_time);
+  return et(row.candle_time);
 }
 </script>
 <template>
@@ -284,7 +284,7 @@ function rowTime(row: Row) {
         <div class="connection">
           <Wifi :size="14" /><span
             :class="{ good: status?.feed === 'connected' }"
-            >Groww ·
+            >Schwab ·
             {{ status?.configured ? status.feed : "unconfigured" }}</span
           ><span class="small muted">UI {{ transport }}</span>
         </div>
@@ -322,9 +322,9 @@ function rowTime(row: Row) {
       <div v-if="status && !status.configured && view === 'scanner'" class="setup-banner">
         <Activity :size="18" />
         <div>
-          <strong>Connect Groww to get started</strong
+          <strong>Connect Schwab to get started</strong
           ><span
-            >Add your Groww credentials to the backend environment and restart.
+            >Add your Schwab credentials to the backend environment and restart.
             Your keys stay on the server.</span
           >
         </div>
@@ -332,7 +332,7 @@ function rowTime(row: Row) {
       <template v-if="view === 'scanner'">
         <section class="intro">
           <div>
-            <div class="eyebrow">NSE EQUITIES / COMPLETED 5-MINUTE CANDLES</div>
+            <div class="eyebrow">US EQUITIES / COMPLETED 5-MINUTE CANDLES</div>
             <h1>Find the relative edge<span>.</span></h1>
             <p>
               One universe. Both directions. Every observation backed by its
@@ -340,11 +340,11 @@ function rowTime(row: Row) {
             </p>
           </div>
           <div class="run-meta">
-            <span class="muted small">Last completed candle · IST</span
+            <span class="muted small">Last completed candle · ET</span
             ><b>{{
               snapshot
-                ? ist(Date.parse(snapshot.as_of) / 1000)
-                : "Awaiting Groww data"
+                ? et(Date.parse(snapshot.as_of) / 1000)
+                : "Awaiting Schwab data"
             }}</b
             ><button class="text-button" @click="details = true">
               Data quality <ArrowUpRight :size="14" />
@@ -425,7 +425,7 @@ function rowTime(row: Row) {
               <thead>
                 <tr>
                   <th>Instrument</th>
-                  <th>Last close ₹</th>
+                  <th>Last close $</th>
                   <th>RRS</th>
                   <th>Volume momentum</th>
                   <th>Volatility expansion</th>
@@ -440,7 +440,7 @@ function rowTime(row: Row) {
                   <td>
                     <button class="symbol" @click="openChart(row.symbol)">
                       {{ row.symbol }}</button
-                    ><small>{{ rowTime(row) }} IST</small>
+                    ><small>{{ rowTime(row) }} ET</small>
                   </td>
                   <td>{{ fmt(row.close) }}</td>
                   <td
@@ -488,11 +488,11 @@ function rowTime(row: Row) {
               {{
                 snapshot
                   ? "Adjust the direction or symbol filter."
-                  : "Fetch Groww history to calculate the five studies. No values are shown until data is available."
+                  : "Fetch Schwab history to calculate the five studies. No values are shown until data is available."
               }}
             </p>
             <UiButton v-if="!snapshot" primary :busy="busy" @click="fetchData"
-              >Fetch Groww history <ArrowUpRight :size="14"
+              >Fetch Schwab history <ArrowUpRight :size="14"
             /></UiButton>
           </div>
           <div class="panel-footer">
@@ -500,8 +500,8 @@ function rowTime(row: Row) {
               >{{ filtered.length }} instruments · directional
               observations</span
             ><span
-              >{{ snapshot?.price_benchmark || "NIFTY 50" }} price benchmark ·
-              {{ snapshot?.volume_benchmark || "NIFTYBEES" }} volume proxy</span
+              >{{ snapshot?.price_benchmark || "SPY" }} price benchmark ·
+              {{ snapshot?.volume_benchmark || "SPY" }} volume proxy</span
             >
           </div>
         </section>
@@ -532,7 +532,7 @@ function rowTime(row: Row) {
         <span
           ><span class="dot"></span
           >{{ status?.message || "Connecting to backend…" }}</span
-        ><span>Research observations · Asia/Kolkata</span>
+        ><span>Research observations · America/New_York</span>
       </footer>
     </div>
     <DialogRoot :open="details" @update:open="details = $event">
@@ -548,7 +548,7 @@ function rowTime(row: Row) {
           </DialogClose>
         </div>
         <DialogDescription class="muted">
-          Instrument identities are resolved against Groww's master and saved
+          Instrument identities are resolved against Schwab's instrument lookup and saved
           for future runs.
         </DialogDescription>
         <UiButton :busy="busy" @click="sync"
@@ -559,7 +559,7 @@ function rowTime(row: Row) {
             <strong>{{ i.symbol }}</strong
             ><span>{{ i.kind }}</span
             ><span class="muted">{{
-              i.groww_symbol || "Awaiting resolution"
+              i.schwab_symbol || "Awaiting resolution"
             }}</span>
           </div>
         </div>
@@ -588,7 +588,7 @@ function rowTime(row: Row) {
             >Price benchmark<select v-model="priceBenchmark">
               <option
                 v-for="i in catalog.filter(
-                  (i) => i.kind === 'index' && i.enabled,
+                  (i) => (i.kind === 'index' || i.kind === 'etf') && i.enabled,
                 )"
                 :value="i.symbol"
               >

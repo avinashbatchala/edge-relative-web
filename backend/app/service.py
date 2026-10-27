@@ -25,7 +25,7 @@ from .indicators import (
     validate_params,
     ema,
 )
-from .provider import GrowwProvider, ProviderError
+from .provider import SchwabProvider, ProviderError
 from .sessions import expected_slot as session_expected_slot
 from .scanner import make_row, number
 from .feed import FeedWorker
@@ -33,8 +33,8 @@ from .exports import ExportRun
 from uuid import uuid4
 
 DEFAULT_CONFIG = {
-    "price_benchmark": "NIFTY 50",
-    "volume_benchmark": "NIFTYBEES",
+    "price_benchmark": "SPY",
+    "volume_benchmark": "SPY",
     "live_enabled": True,
     "publication_grace_seconds": 20,
     "max_stocks": 20,
@@ -68,7 +68,7 @@ class Workspace:
         names = [i.symbol for i in self.instruments]
         if len(names) != len(set(names)):
             raise ValueError("Duplicate catalog symbols")
-        self.provider = GrowwProvider(Path(cache_dir))
+        self.provider = SchwabProvider(Path(cache_dir))
         self.lock = threading.Lock()
         self.snapshot = None
         self.export_run = None
@@ -76,7 +76,7 @@ class Workspace:
         self.request = None
         self.feed = None
         self.feed_state = "disabled"
-        self.message = "Add backend credentials, then fetch Groww history."
+        self.message = "Add backend credentials, then fetch Schwab history."
         self.sequence = 0
         self.clients = set()
         self.loop = None
@@ -125,7 +125,7 @@ class Workspace:
             if type == "feed_status":
                 self.feed_state = payload["state"]
                 self.message = (
-                    f"Groww feed {self.feed_state}. Scanner uses completed candles."
+                    f"Schwab feed {self.feed_state}. Scanner uses completed candles."
                 )
                 if self.feed_state == "connected":
                     self.reconcile_due = True
@@ -169,7 +169,7 @@ class Workspace:
                     "future_range", "Scan end must not be in the future."
                 )
             if any(
-                not i.groww_symbol or not i.exchange_token
+                not i.schwab_symbol
                 for i in self.instruments
                 if i.enabled
             ):
@@ -195,10 +195,10 @@ class Workspace:
                     "benchmark_missing",
                     "Enable the configured price and volume benchmarks.",
                 )
-            if catalog[price].kind != "index" or catalog[volume].kind == "index":
+            if catalog[price].kind not in {"index", "etf"} or catalog[volume].kind == "index":
                 raise ProviderError(
                     "benchmark_invalid",
-                    "Price benchmark must be an index; volume benchmark must be traded.",
+                    "Price benchmark must be an index or ETF; volume benchmark must be traded.",
                 )
             names = {
                 price,
@@ -269,18 +269,7 @@ class Workspace:
                 )
             except ProviderError as exc:
                 failures["daily_context"] = exc.message
-            profiles_by_symbol = {
-                instrument.symbol: (
-                    "nse_cas"
-                    if any(
-                        catalog[n].session_profile == "nse_cas"
-                        for n in [instrument.symbol, price, volume, instrument.sector]
-                        if n in catalog
-                    )
-                    else "nse_cash"
-                )
-                for instrument in stocks
-            }
+            profiles_by_symbol = {i.symbol: "us_regular" for i in stocks}
             for instrument in stocks:
                 profile = profiles_by_symbol[instrument.symbol]
                 if profile in contexts:
@@ -412,7 +401,7 @@ class Workspace:
             diagnostics = {
                 **next(iter(diagnostics.values())),
                 "session_contexts": diagnostics,
-                "session_policy_version": "nse-continuous-v1",
+                "session_policy_version": "us-regular-v1",
                 "fetch_failures": failures,
             }
             snapshot = ScanSnapshot(
@@ -438,7 +427,7 @@ class Workspace:
             self.charts = charts
             self.snapshot = snapshot
             self.request = request
-            self.message = "Groww history loaded. Scanner values are completed-candle observations."
+            self.message = "Schwab history loaded. Scanner values are completed-candle observations."
             if not request.live and self.feed:
                 self.feed.stop()
                 self.feed = None
@@ -450,7 +439,7 @@ class Workspace:
                 self.feed.start()
             return snapshot
 
-    def expected_slot(self, asof, profile="nse_cash"):
+    def expected_slot(self, asof, profile="us_regular"):
         return session_expected_slot(
             asof, profile, self.config["publication_grace_seconds"]
         )
@@ -465,11 +454,11 @@ class Workspace:
             now = pd.Timestamp.now(tz=TZ)
             minutes = now.hour * 60 + now.minute
             profiles = {chart.session_profile for chart in self.charts.values()} or {
-                "nse_cash"
+                "us_regular"
             }
             slots = [self.expected_slot(now, profile) for profile in profiles]
             slot = max((value for value in slots if value is not None), default=None)
-            if not (now.weekday() < 5 and 560 <= minutes <= 935):
+            if not (now.weekday() < 5 and 570 <= minutes <= 965):
                 continue
             if not self.reconcile_due and slot == previous_slot:
                 continue

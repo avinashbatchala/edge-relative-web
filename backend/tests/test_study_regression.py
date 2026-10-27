@@ -13,7 +13,7 @@ def run_checks():
         "Wilder uses SMA seed then alpha=1/n",
         np.allclose(wa(x, 3).dropna(), [2, 8 / 3, 31 / 9]),
     )
-    idx = pd.date_range("2026-08-03 09:15", periods=4, freq="5min", tz=TZ)
+    idx = pd.date_range("2026-08-03 09:30", periods=4, freq="5min", tz=TZ)
     fixture = pd.DataFrame(
         {
             "open": [10, 12, 9, 10],
@@ -41,14 +41,14 @@ def run_checks():
     )
     s, b, v, sectors, daily = synthetic_data()
     r, b, m, q = run_studies(s, b, v, sectors, daily)
-    same = oscillators(s["TCS"], s["TCS"], s["TCS"])
+    same = oscillators(s["AAPL"], s["AAPL"], s["AAPL"])
     check(
         "Self-comparison yields zero for all oscillators",
         all(np.allclose(same[c].dropna(), 0) for c in ["rrs", "rrv", "rel_volatility"]),
     )
-    no_volume = oscillators(s["TCS"], b, b)
+    no_volume = oscillators(s["AAPL"], b, b)
     check("Price index missing volume does not invent RRV", no_volume.rrv.isna().all())
-    flat = s["TCS"].copy()
+    flat = s["AAPL"].copy()
     flat[COLS[:4]] = 100
     flat.volume = 100
     z = oscillators(flat, flat, flat)
@@ -56,15 +56,15 @@ def run_checks():
         "Zero denominators yield unavailable, never infinity",
         z[["rrs", "rrv", "rel_volatility"]].isna().all().all(),
     )
-    gap = s["TCS"].copy()
+    gap = s["AAPL"].copy()
     gap.iloc[100] = np.nan
     g = oscillators(gap, b, v)
     check(
         "Missing stock bar invalidates and rewarms RRS",
         g.rrs.iloc[100:113].isna().all(),
     )
-    original = oscillators(s["TCS"], b, v)
-    altered = s["TCS"].copy()
+    original = oscillators(s["AAPL"], b, v)
+    altered = s["AAPL"].copy()
     altered.iloc[600:, 0:4] *= 1.5
     alt = oscillators(altered, b, v)
     check(
@@ -107,7 +107,7 @@ def run_checks():
         for t, row in fixture.iterrows()
     ]
     check(
-        "New Groww ISO payload accepted",
+        "New Schwab ISO payload accepted",
         len(parse_candles({"candles": iso}, now=base + pd.Timedelta(days=1))) == 4,
     )
     check(
@@ -211,7 +211,7 @@ def run_checks():
     check(
         "All features finite or explicitly missing",
         not np.isinf(
-            r["TCS"]["features"].select_dtypes(include="number").to_numpy()
+            r["AAPL"]["features"].select_dtypes(include="number").to_numpy()
         ).any(),
     )
     print(

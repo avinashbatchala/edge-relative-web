@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Edge Relative Groww workspace",
+    "title": "Edge Relative Schwab workspace",
     "version": "1.0.0"
   },
   "paths": {
@@ -397,18 +397,15 @@
         "properties": {
           "session_profile": {
             "type": "string",
-            "enum": [
-              "nse_cash",
-              "nse_cas"
-            ],
+            "const": "us_regular",
             "title": "Session Profile",
-            "default": "nse_cash"
+            "default": "us_regular"
           },
           "session_policy_version": {
             "type": "string",
-            "const": "nse-continuous-v1",
+            "const": "us-regular-v1",
             "title": "Session Policy Version",
-            "default": "nse-continuous-v1"
+            "default": "us-regular-v1"
           },
           "run_id": {
             "anyOf": [
@@ -433,15 +430,15 @@
           },
           "timezone": {
             "type": "string",
-            "const": "Asia/Kolkata",
+            "const": "America/New_York",
             "title": "Timezone",
-            "default": "Asia/Kolkata"
+            "default": "America/New_York"
           },
           "price_unit": {
             "type": "string",
-            "const": "INR",
+            "const": "USD",
             "title": "Price Unit",
-            "default": "INR"
+            "default": "USD"
           },
           "volume_unit": {
             "type": "string",
@@ -578,7 +575,7 @@
             ],
             "title": "Sector"
           },
-          "groww_symbol": {
+          "schwab_symbol": {
             "anyOf": [
               {
                 "type": "string"
@@ -587,39 +584,23 @@
                 "type": "null"
               }
             ],
-            "title": "Groww Symbol"
-          },
-          "exchange_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Exchange Token"
+            "title": "Schwab Symbol"
           },
           "exchange": {
             "type": "string",
-            "const": "NSE",
+            "enum": [
+              "NASDAQ",
+              "NYSE",
+              "NYSEARCA"
+            ],
             "title": "Exchange",
-            "default": "NSE"
-          },
-          "segment": {
-            "type": "string",
-            "const": "CASH",
-            "title": "Segment",
-            "default": "CASH"
+            "default": "NASDAQ"
           },
           "session_profile": {
             "type": "string",
-            "enum": [
-              "nse_cash",
-              "nse_cas"
-            ],
+            "const": "us_regular",
             "title": "Session Profile",
-            "default": "nse_cash"
+            "default": "us_regular"
           }
         },
         "additionalProperties": false,
@@ -733,9 +714,9 @@
           },
           "timezone": {
             "type": "string",
-            "const": "Asia/Kolkata",
+            "const": "America/New_York",
             "title": "Timezone",
-            "default": "Asia/Kolkata"
+            "default": "America/New_York"
           },
           "price_benchmark": {
             "type": "string",
@@ -918,9 +899,9 @@
         "properties": {
           "provider": {
             "type": "string",
-            "const": "groww",
+            "const": "schwab",
             "title": "Provider",
-            "default": "groww"
+            "default": "schwab"
           },
           "configured": {
             "type": "boolean",

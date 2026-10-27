@@ -1,82 +1,53 @@
-import base64
-import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
-
 import pytest
+from app.provider import SchwabProvider, ProviderError
 
-from app.provider import GrowwProvider, ProviderError
+
+def test_missing_credentials(monkeypatch, tmp_path):
+    for key in ("SCHWAB_APP_KEY", "SCHWAB_APP_SECRET"):
+        monkeypatch.delenv(key, raising=False)
+    provider = SchwabProvider(tmp_path)
+    assert not provider.configured()
+    with pytest.raises(ProviderError, match="SCHWAB_APP_KEY"):
+        provider.connect()
 
 
-@pytest.fixture
-def auth(monkeypatch, tmp_path):
-    for name in ("GROWW_TOTP_TOKEN", "GROWW_TOTP_SECRET", "GROWW_ACCESS_TOKEN", "GROWW_API_KEY", "GROWW_API_SECRET"):
-        monkeypatch.delenv(name, raising=False)
+def test_concurrent_client_reuse_and_noninteractive_auth(monkeypatch, tmp_path):
+    monkeypatch.setenv("SCHWAB_APP_KEY", "key")
+    monkeypatch.setenv("SCHWAB_APP_SECRET", "secret")
+    monkeypatch.setenv("SCHWAB_TOKENS_DB", str(tmp_path / "tokens.db"))
     calls = []
-
-    class SDK:
-        @staticmethod
-        def get_access_token(**kwargs):
-            calls.append(kwargs)
-            return "opaque-token"
-
-        def __init__(self, token):
-            self.token = token
-
-    monkeypatch.setitem(sys.modules, "growwapi", SimpleNamespace(GrowwAPI=SDK))
-    return GrowwProvider(tmp_path), calls, SDK
-
-
-def test_totp_precedence_and_concurrent_reuse(auth, monkeypatch):
-    provider, calls, _ = auth
-    monkeypatch.setenv("GROWW_TOTP_TOKEN", "totp-key")
-    monkeypatch.setenv("GROWW_TOTP_SECRET", "JBSWY3DPEHPK3PXP")
-    monkeypatch.setenv("GROWW_ACCESS_TOKEN", "old-manual-token")
-    assert provider.configured()
+    def client(*args, **kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(tokens=SimpleNamespace(access_token="token"))
+    monkeypatch.setitem(sys.modules, "schwabdev", SimpleNamespace(Client=client))
+    provider = SchwabProvider(tmp_path)
     with ThreadPoolExecutor(max_workers=8) as pool:
         clients = list(pool.map(lambda _: provider.connect(), range(16)))
-    assert all(client is clients[0] for client in clients)
-    assert len(calls) == 1
-    assert calls[0]["api_key"] == "totp-key"
-    assert len(calls[0]["totp"]) == 6
-    provider.feed_client = object()
-    provider._refresh_at = 0
-    assert provider.connect() is not clients[0]
-    assert provider.feed_client is None
-    assert len(calls) == 2
+    assert all(c is clients[0] for c in clients) and len(calls) == 1
+    assert calls[0]["open_browser_for_auth"] is False
+    with pytest.raises(RuntimeError):
+        calls[0]["call_on_auth"]()
 
 
-def test_manual_token_and_legacy_flow(auth, monkeypatch):
-    provider, calls, _ = auth
-    monkeypatch.setenv("GROWW_ACCESS_TOKEN", "manual")
-    assert provider.connect().token == "manual"
-    assert calls == []
-    monkeypatch.delenv("GROWW_ACCESS_TOKEN")
-    provider.api = None
-    monkeypatch.setenv("GROWW_API_KEY", "key")
-    monkeypatch.setenv("GROWW_API_SECRET", "secret")
-    provider.connect()
-    assert calls == [{"api_key": "key", "secret": "secret"}]
-
-
-def test_expiry_and_sanitized_failure(auth, monkeypatch):
-    provider, _, sdk = auth
-    monkeypatch.setenv("GROWW_TOTP_TOKEN", "key")
-    monkeypatch.setenv("GROWW_TOTP_SECRET", "JBSWY3DPEHPK3PXP")
-    import time
-    expiry = int(time.time()) + 120
-    payload = base64.urlsafe_b64encode(json.dumps({"exp": expiry}).encode()).decode().rstrip("=")
-    monkeypatch.setattr(sdk, "get_access_token", lambda **kwargs: f"header.{payload}.signature")
-    provider.connect()
-    assert provider._refresh_at <= expiry
-    provider._refresh_at = 0
-
-    def fail(**kwargs):
-        raise RuntimeError("private-credential")
-
-    monkeypatch.setattr(sdk, "get_access_token", fail)
+def test_auth_errors_hide_credentials(monkeypatch, tmp_path):
+    monkeypatch.setenv("SCHWAB_APP_KEY", "key")
+    monkeypatch.setenv("SCHWAB_APP_SECRET", "secret")
+    monkeypatch.setenv("SCHWAB_TOKENS_DB", str(tmp_path / "tokens.db"))
+    def client(*args, **kwargs): raise RuntimeError("private-credential")
+    monkeypatch.setitem(sys.modules, "schwabdev", SimpleNamespace(Client=client))
     with pytest.raises(ProviderError) as error:
-        provider.connect()
+        SchwabProvider(tmp_path).connect()
     assert error.value.code == "authentication_failed"
     assert "private-credential" not in str(error.value)
+
+
+def test_sdk_missing_authorization_is_rejected_without_stdin(monkeypatch, tmp_path):
+    monkeypatch.setenv("SCHWAB_APP_KEY", "a" * 32)
+    monkeypatch.setenv("SCHWAB_APP_SECRET", "b" * 16)
+    monkeypatch.setenv("SCHWAB_TOKENS_DB", str(tmp_path / "tokens.db"))
+    with pytest.raises(ProviderError) as error:
+        SchwabProvider(tmp_path / "cache").connect()
+    assert error.value.code == "authentication_failed"

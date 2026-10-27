@@ -7,7 +7,7 @@ from app.main import create_app
 from app.contracts import ScanRequest
 from test_workspace import FixtureProvider, workspace
 
-REQUEST = ScanRequest(start="2026-08-03T03:45:00Z", end="2026-08-06T10:00:00Z")
+REQUEST = ScanRequest(start="2026-08-03T13:30:00Z", end="2026-08-06T20:00:00Z")
 
 
 def scanned_app(tmp_path):
@@ -21,18 +21,18 @@ def scanned_app(tmp_path):
 def test_csv_download_contains_inputs_signals_and_provenance(tmp_path):
     app = scanned_app(tmp_path)
     with TestClient(app) as client:
-        response = client.get("/api/v1/exports/TCS.csv")
+        response = client.get("/api/v1/exports/AAPL.csv")
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/csv")
         assert "attachment" in response.headers["content-disposition"]
         rows = list(csv.DictReader(io.StringIO(response.content.decode("utf-8-sig"))))
         last = rows[-1]
-        chart = app.state.workspace.charts["TCS"]
+        chart = app.state.workspace.charts["AAPL"]
         for field in [
             "symbol",
             "run_id",
             "timestamp_utc",
-            "timestamp_ist",
+            "timestamp_et",
             "session_date",
             "rrs",
             "rrv",
@@ -56,7 +56,7 @@ def test_csv_download_contains_inputs_signals_and_provenance(tmp_path):
             assert field in last, field
         assert float(last["rrs"]) == chart.points[-1].features["rrs"]
         assert last["run_id"] == chart.run_id
-        assert last["timestamp_ist"].endswith("+05:30")
+        assert last["timestamp_et"].endswith("-04:00")
         assert last["is_provisional"] == "false"
         assert len(rows) == len(chart.points)
         assert rows[0]["rrs"] == "" and rows[0]["rrs_available"] == "false"
@@ -74,13 +74,13 @@ def test_run_bundle_contains_reproducible_input_history_and_manifest(tmp_path):
         with zipfile.ZipFile(io.BytesIO(response.content)) as bundle:
             manifest = json.loads(bundle.read("manifest.json"))
             assert (
-                manifest["provider"] == "groww"
+                manifest["provider"] == "schwab"
                 and manifest["export_schema_version"] == "2.0"
             )
             assert manifest["request"]["start"] == REQUEST.start.isoformat().replace(
                 "+00:00", "Z"
             )
-            assert "results/TCS.csv" in bundle.namelist()
+            assert "results/AAPL.csv" in bundle.namelist()
             assert "inputs/benchmark_daily.csv" in bundle.namelist()
             assert "data_dictionary.json" in bundle.namelist()
             assert "diagnostics.json" in bundle.namelist()
@@ -89,7 +89,7 @@ def test_run_bundle_contains_reproducible_input_history_and_manifest(tmp_path):
 
                 assert hashlib.sha256(bundle.read(path)).hexdigest() == digest
             assert manifest["source_code_sha256"]["indicators.py"]
-            assert b"GROWW_API_SECRET" not in bundle.read("manifest.json")
+            assert b"SCHWAB_APP_SECRET" not in bundle.read("manifest.json")
             assert (
                 "market_new_dislocation"
                 in json.loads(bundle.read("data_dictionary.json"))["columns"]
@@ -98,7 +98,7 @@ def test_run_bundle_contains_reproducible_input_history_and_manifest(tmp_path):
 
 def test_export_without_loaded_run_has_clear_error(tmp_path):
     with TestClient(create_app(tmp_path)) as client:
-        for path in ["/api/v1/exports/TCS.csv", "/api/v1/exports/run.zip"]:
+        for path in ["/api/v1/exports/AAPL.csv", "/api/v1/exports/run.zip"]:
             response = client.get(path)
             assert (
                 response.status_code == 404
@@ -108,10 +108,10 @@ def test_export_without_loaded_run_has_clear_error(tmp_path):
 
 def test_export_rejects_a_superseded_chart_run(tmp_path):
     app = scanned_app(tmp_path)
-    first = app.state.workspace.charts["TCS"].run_id
+    first = app.state.workspace.charts["AAPL"].run_id
     app.state.workspace.scan(REQUEST)
     with TestClient(app) as client:
-        response = client.get("/api/v1/exports/TCS.csv", params={"run_id": first})
+        response = client.get("/api/v1/exports/AAPL.csv", params={"run_id": first})
         assert response.status_code == 409
         assert "refresh" in response.json()["detail"].lower()
 
@@ -125,7 +125,7 @@ def test_missing_sector_has_stable_null_columns(tmp_path):
         rows = list(
             csv.DictReader(
                 io.StringIO(
-                    client.get("/api/v1/exports/TCS.csv").content.decode("utf-8-sig")
+                    client.get("/api/v1/exports/AAPL.csv").content.decode("utf-8-sig")
                 )
             )
         )
@@ -142,7 +142,7 @@ def test_unknown_symbol_is_not_exported(tmp_path):
 def test_export_preserves_boolean_zero_missing_and_future_features(tmp_path):
     app = scanned_app(tmp_path)
     run = app.state.workspace.export_run
-    point = run.charts["TCS"].points[0]
+    point = run.charts["AAPL"].points[0]
     point.features.update(
         {
             "rrs": 0.0,
@@ -152,7 +152,7 @@ def test_export_preserves_boolean_zero_missing_and_future_features(tmp_path):
             "unsafe_label": "=1+1",
         }
     )
-    rows = list(csv.DictReader(io.StringIO(run.csv("TCS").decode("utf-8-sig"))))
+    rows = list(csv.DictReader(io.StringIO(run.csv("AAPL").decode("utf-8-sig"))))
     assert rows[0]["rrs"] == "0.0" and rows[0]["sector_new_strong"] == "false"
     assert (
         rows[0]["market_new_dislocation"] == "true"
@@ -165,10 +165,10 @@ def test_captured_run_does_not_change_when_config_or_request_changes(tmp_path):
     app = scanned_app(tmp_path)
     w = app.state.workspace
     run = w.export_run
-    before = run.csv("TCS")
+    before = run.csv("AAPL")
     w.parameters["length"] = 99
     w.request = w.request.model_copy(update={"market_filter": True})
-    assert run.csv("TCS") == before
+    assert run.csv("AAPL") == before
     assert run.request["market_filter"] is False
 
 
@@ -179,14 +179,14 @@ def test_normalized_input_gaps_survive_export(tmp_path):
 
     def fetch(item, *args, **kwargs):
         data = original(item, *args, **kwargs)
-        if item.symbol == "NIFTY 50" and kwargs.get("interval", 5) == 5:
+        if item.symbol == "SPY" and kwargs.get("interval", 5) == 5:
             data.iloc[50] = float("nan")
         return data
 
     w.provider.fetch = fetch
     w.scan(REQUEST)
     rows = list(
-        csv.DictReader(io.StringIO(w.export_run.csv("TCS").decode("utf-8-sig")))
+        csv.DictReader(io.StringIO(w.export_run.csv("AAPL").decode("utf-8-sig")))
     )
     assert rows[50]["price_benchmark_close"] == "" and rows[50]["rrs"] == ""
     assert rows[50]["rrs_available"] == "false"

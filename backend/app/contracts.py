@@ -14,11 +14,9 @@ class Instrument(Contract):
     kind: Literal["stock", "index", "etf"]
     enabled: bool = True
     sector: str | None = None
-    groww_symbol: str | None = None
-    exchange_token: str | None = None
-    exchange: Literal["NSE"] = "NSE"
-    segment: Literal["CASH"] = "CASH"
-    session_profile: Literal["nse_cash", "nse_cas"] = "nse_cash"
+    schwab_symbol: str | None = None
+    exchange: Literal["NASDAQ", "NYSE", "NYSEARCA"] = "NASDAQ"
+    session_profile: Literal["us_regular"] = "us_regular"
 
 
 class IndicatorSettings(Contract):
@@ -70,7 +68,7 @@ class ScannerRow(Contract):
 
 
 class Status(Contract):
-    provider: Literal["groww"] = "groww"
+    provider: Literal["schwab"] = "schwab"
     configured: bool
     snapshot_available: bool = False
     feed: Literal["disabled", "connecting", "connected", "stale", "disconnected"] = (
@@ -83,7 +81,7 @@ class ScanSnapshot(Contract):
     schema_version: Literal["1.0"] = "1.0"
     generated_at: datetime
     as_of: datetime
-    timezone: Literal["Asia/Kolkata"] = "Asia/Kolkata"
+    timezone: Literal["America/New_York"] = "America/New_York"
     price_benchmark: str
     volume_benchmark: str
     rows: list[ScannerRow]
@@ -101,13 +99,13 @@ class ChartPoint(Contract):
 
 
 class ChartResponse(Contract):
-    session_profile: Literal["nse_cash", "nse_cas"] = "nse_cash"
-    session_policy_version: Literal["nse-continuous-v1"] = "nse-continuous-v1"
+    session_profile: Literal["us_regular"] = "us_regular"
+    session_policy_version: Literal["us-regular-v1"] = "us-regular-v1"
     run_id: str | None = None
     schema_version: Literal["1.0"] = "1.0"
     symbol: str
-    timezone: Literal["Asia/Kolkata"] = "Asia/Kolkata"
-    price_unit: Literal["INR"] = "INR"
+    timezone: Literal["America/New_York"] = "America/New_York"
+    price_unit: Literal["USD"] = "USD"
     volume_unit: Literal["shares"] = "shares"
     price_benchmark: str
     volume_benchmark: str

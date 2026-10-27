@@ -184,16 +184,16 @@ export interface components {
         ChartResponse: {
             /**
              * Session Profile
-             * @default nse_cash
-             * @enum {string}
-             */
-            session_profile: "nse_cash" | "nse_cas";
-            /**
-             * Session Policy Version
-             * @default nse-continuous-v1
+             * @default us_regular
              * @constant
              */
-            session_policy_version: "nse-continuous-v1";
+            session_profile: "us_regular";
+            /**
+             * Session Policy Version
+             * @default us-regular-v1
+             * @constant
+             */
+            session_policy_version: "us-regular-v1";
             /** Run Id */
             run_id?: string | null;
             /**
@@ -206,16 +206,16 @@ export interface components {
             symbol: string;
             /**
              * Timezone
-             * @default Asia/Kolkata
+             * @default America/New_York
              * @constant
              */
-            timezone: "Asia/Kolkata";
+            timezone: "America/New_York";
             /**
              * Price Unit
-             * @default INR
+             * @default USD
              * @constant
              */
-            price_unit: "INR";
+            price_unit: "USD";
             /**
              * Volume Unit
              * @default shares
@@ -279,28 +279,20 @@ export interface components {
             enabled: boolean;
             /** Sector */
             sector?: string | null;
-            /** Groww Symbol */
-            groww_symbol?: string | null;
-            /** Exchange Token */
-            exchange_token?: string | null;
+            /** Schwab Symbol */
+            schwab_symbol?: string | null;
             /**
              * Exchange
-             * @default NSE
-             * @constant
-             */
-            exchange: "NSE";
-            /**
-             * Segment
-             * @default CASH
-             * @constant
-             */
-            segment: "CASH";
-            /**
-             * Session Profile
-             * @default nse_cash
+             * @default NASDAQ
              * @enum {string}
              */
-            session_profile: "nse_cash" | "nse_cas";
+            exchange: "NASDAQ" | "NYSE" | "NYSEARCA";
+            /**
+             * Session Profile
+             * @default us_regular
+             * @constant
+             */
+            session_profile: "us_regular";
         };
         /** ScanRequest */
         ScanRequest: {
@@ -370,10 +362,10 @@ export interface components {
             as_of: string;
             /**
              * Timezone
-             * @default Asia/Kolkata
+             * @default America/New_York
              * @constant
              */
-            timezone: "Asia/Kolkata";
+            timezone: "America/New_York";
             /** Price Benchmark */
             price_benchmark: string;
             /** Volume Benchmark */
@@ -426,10 +418,10 @@ export interface components {
         Status: {
             /**
              * Provider
-             * @default groww
+             * @default schwab
              * @constant
              */
-            provider: "groww";
+            provider: "schwab";
             /** Configured */
             configured: boolean;
             /**

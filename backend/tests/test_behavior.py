@@ -15,11 +15,11 @@ def test_wilder_seed_and_gap_reset():
 
 
 def test_no_forming_bar_or_invalid_price_enters_features():
-    now = pd.Timestamp("2026-10-12 09:27", tz=TZ)
+    now = pd.Timestamp("2026-10-12 09:42", tz=TZ)
     rows = [
-        ["2026-10-12T09:15:00", 10, 11, 9, 10, 100],
-        ["2026-10-12T09:20:00", 10, 0, 9, 10, 100],
-        ["2026-10-12T09:25:00", 10, 11, 9, 10, 100],
+        ["2026-10-12T09:30:00", 10, 11, 9, 10, 100],
+        ["2026-10-12T09:35:00", 10, 0, 9, 10, 100],
+        ["2026-10-12T09:40:00", 10, 11, 9, 10, 100],
     ]
     data = parse_candles({"candles": rows}, now=now)
     assert len(data) == 2 and data.iloc[1].isna().all()
@@ -28,7 +28,7 @@ def test_no_forming_bar_or_invalid_price_enters_features():
 
 def test_index_volume_missing_keeps_price():
     data = parse_candles(
-        {"candles": [["2026-10-12T09:15:00", 10, 11, 9, 10, -1]]},
+        {"candles": [["2026-10-12T09:30:00", 10, 11, 9, 10, -1]]},
         now=pd.Timestamp("2026-10-12 10:00", tz=TZ),
     )
     assert data.close.iloc[0] == 10 and pd.isna(data.volume.iloc[0])
@@ -47,19 +47,19 @@ def test_time_range_validated():
     import pytest
 
     with pytest.raises(ValueError):
-        ScanRequest(start="2026-10-12T12:00:00Z", end="2026-10-12T10:00:00Z")
+        ScanRequest(start="2026-10-12T21:00:00Z", end="2026-10-12T10:00:00Z")
     with pytest.raises(ValueError):
-        ScanRequest(start="2026-10-12T09:15:00", end="2026-10-12T10:00:00")
+        ScanRequest(start="2026-10-12T09:30:00", end="2026-10-12T10:00:00")
 
 
 def test_health_and_no_credentials_no_fallback(monkeypatch, tmp_path):
-    for name in ["GROWW_ACCESS_TOKEN", "GROWW_API_KEY", "GROWW_API_SECRET", "GROWW_TOTP_TOKEN", "GROWW_TOTP_SECRET"]:
+    for name in ["SCHWAB_APP_KEY", "SCHWAB_APP_SECRET"]:
         monkeypatch.delenv(name, raising=False)
     with TestClient(create_app(config_dir=tmp_path)) as client:
-        assert client.get("/api/v1/health").json()["provider"] == "groww"
+        assert client.get("/api/v1/health").json()["provider"] == "schwab"
         response = client.post(
             "/api/v1/scan",
-            json={"start": "2026-10-01T03:45:00Z", "end": "2026-10-12T10:00:00Z"},
+            json={"start": "2026-10-01T13:30:00Z", "end": "2026-10-12T20:00:00Z"},
         )
         assert response.status_code == 503
         assert response.json()["error"]["code"] == "credentials_missing"
@@ -84,7 +84,7 @@ def test_no_runtime_synthetic_generator():
 
 
 def test_future_data_does_not_change_past():
-    idx = pd.date_range("2026-10-05 09:15", periods=65, freq="5min", tz=TZ)
+    idx = pd.date_range("2026-10-05 09:30", periods=65, freq="5min", tz=TZ)
     close = 100 + np.sin(np.arange(65) / 3) + np.arange(65) * 0.05
     data = pd.DataFrame(
         {

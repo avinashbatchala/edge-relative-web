@@ -50,7 +50,7 @@ import {
   Settings2,
 } from "lucide-vue-next";
 import type { ChartData, Point, Quote, Row, Snapshot, Status } from "./types";
-import { fmt, ist, numeric } from "./format";
+import { fmt, et, numeric } from "./format";
 import { downloadExport, type ExportKind } from "./download";
 import { readChartTheme, type ChartTheme } from "./chart-theme";
 import {
@@ -194,7 +194,7 @@ const canCompare = computed(
   () => viewportWidth.value >= 760 && viewportHeight.value >= 640 && chartHeight.value >= 450,
 );
 const qualityMessage = computed(() => {
-  if (props.status && !props.status.configured) return "Groww credentials are not configured on the backend.";
+  if (props.status && !props.status.configured) return "Schwab credentials are not configured on the backend.";
   if (!props.data) return props.loading ? "Loading confirmed candles…" : "Select an instrument to inspect its chart.";
   if (props.data.symbol !== props.selectedSymbol)
     return props.requestError
@@ -294,7 +294,7 @@ function saveNativePaneHeights() {
   updateLayout(resized);
 }
 function timeLabel(time: UTCTimestamp): string {
-  return ist(time);
+  return et(time);
 }
 function createChartInstance(): IChartApi {
   if (!chartHost.value) throw new Error("Chart surface is not mounted");
@@ -322,7 +322,7 @@ function createChartInstance(): IChartApi {
       tickMarkFormatter: timeLabel,
       rightOffset: 2,
     },
-    localization: { timeFormatter: (time: UTCTimestamp) => ist(time) },
+    localization: { timeFormatter: (time: UTCTimestamp) => et(time) },
     crosshair: {
       vertLine: { color: theme.crosshair, labelBackgroundColor: theme.crosshairLabel },
       horzLine: { color: theme.crosshair, labelBackgroundColor: theme.crosshairLabel },
@@ -692,7 +692,7 @@ onBeforeUnmount(() => {
             </button>
             <div v-if="!narrowedRows.length" class="sidebar-empty">{{ snapshot ? 'No matching instruments.' : 'Scanner values appear after a successful fetch.' }}</div>
           </div>
-          <p class="scanner-context">Latest scanner snapshot · {{ snapshot ? ist(Date.parse(snapshot.as_of) / 1000) : 'not available' }} IST</p>
+          <p class="scanner-context">Latest scanner snapshot · {{ snapshot ? et(Date.parse(snapshot.as_of) / 1000) : 'not available' }} ET</p>
         </template>
         <template v-else>
           <div class="collapsed-instruments">
@@ -714,12 +714,12 @@ onBeforeUnmount(() => {
           <div class="chart-instrument-heading">
             <button class="icon-button mobile-sidebar-button" type="button" aria-label="Open instrument scanner" title="Open instrument scanner" @click="toggleSidebar"><Search :size="15" /></button>
             <strong>{{ selectedSymbol || 'Select instrument' }}</strong>
-            <span class="exchange-pill">NSE · 5m</span>
+            <span class="exchange-pill">US · 5m</span>
             <span v-if="currentQuality" :class="['quality-pill', currentQuality]">{{ currentQuality }}</span>
           </div>
           <div class="chart-toolbar-meta">
             <span class="benchmark-pair"><span>Price <b>{{ data?.price_benchmark ?? snapshot?.price_benchmark ?? '—' }}</b></span><span>Volume <b>{{ data?.volume_benchmark ?? snapshot?.volume_benchmark ?? '—' }}</b></span></span>
-            <span :class="['feed-state', status?.feed === 'connected' ? 'feed-connected' : 'feed-disconnected']"><i></i>{{ status?.configured ? `Groww ${status.feed}` : 'Groww unconfigured' }} · UI {{ transport }}</span>
+            <span :class="['feed-state', status?.feed === 'connected' ? 'feed-connected' : 'feed-disconnected']"><i></i>{{ status?.configured ? `Schwab ${status.feed}` : 'Schwab unconfigured' }} · UI {{ transport }}</span>
             <span :class="['badge', marketBadge.tone]">Market · {{ marketBadge.label }}</span>
             <span :class="['badge', sectorBadge.tone]">Sector · {{ sectorBadge.label }}</span>
           </div>
@@ -742,13 +742,13 @@ onBeforeUnmount(() => {
 
         <div ref="host" class="plot-workspace" :class="{ 'has-no-data': !data?.points.length, 'plot-maximized-price': layout.maximizedRegion === 'price', 'plot-maximized-primary': layout.maximizedRegion === 'primary', 'plot-maximized-secondary': layout.maximizedRegion === 'secondary' }">
           <div class="price-region-heading">
-            <div class="ohlc-strip"><span class="ohlc-time">{{ ist(inspected?.time) }} IST</span><span>O <b>{{ fmt(inspected?.open) }}</b></span><span>H <b>{{ fmt(inspected?.high) }}</b></span><span>L <b>{{ fmt(inspected?.low) }}</b></span><span>C <b>{{ fmt(inspected?.close) }}</b></span><span v-if="visibleQuote" class="provisional-quote">LTP ₹{{ fmt(visibleQuote.price) }} <small>provisional · {{ ist(visibleQuote.time) }}</small></span></div>
+            <div class="ohlc-strip"><span class="ohlc-time">{{ et(inspected?.time) }} ET</span><span>O <b>{{ fmt(inspected?.open) }}</b></span><span>H <b>{{ fmt(inspected?.high) }}</b></span><span>L <b>{{ fmt(inspected?.low) }}</b></span><span>C <b>{{ fmt(inspected?.close) }}</b></span><span v-if="visibleQuote" class="provisional-quote">LTP ${{ fmt(visibleQuote.price) }} <small>provisional · {{ et(visibleQuote.time) }}</small></span></div>
             <TooltipRoot><TooltipTrigger as-child><button class="icon-button maximize-button" type="button" :aria-label="layout.maximizedRegion === 'price' ? 'Restore chart layout' : 'Maximize price region'" :title="layout.maximizedRegion === 'price' ? 'Restore layout' : 'Maximize price chart'" @click="toggleRegion('price')"><Minimize2 v-if="layout.maximizedRegion === 'price'" :size="15" /><Maximize2 v-else :size="15" /></button></TooltipTrigger><TooltipPortal><TooltipContent class="tooltip">{{ layout.maximizedRegion === 'price' ? 'Restore layout' : 'Maximize price region' }}</TooltipContent></TooltipPortal></TooltipRoot>
           </div>
           <div ref="chartHost" :data-chart-instance="chartInstanceId" class="chart-canvas" aria-label="Synchronized price and indicator chart"></div>
           <div v-if="!data?.points.length" class="chart-empty-overlay">
             <strong>{{ loading ? `Loading ${selectedSymbol || 'instrument'}…` : requestError ? 'Unable to load chart' : selectedSymbol ? 'No usable confirmed candles' : 'Choose an instrument' }}</strong>
-            <span>{{ status && !status.configured ? 'Groww credentials are not configured. Add them to the backend environment to load real history.' : loading ? 'Chart layout is ready; confirmed candle data is loading.' : 'Select an instrument from the scanner or fetch Groww history. No sample data is shown.' }}</span>
+            <span>{{ status && !status.configured ? 'Schwab credentials are not configured. Add them to the backend environment to load real history.' : loading ? 'Chart layout is ready; confirmed candle data is loading.' : 'Select an instrument from the scanner or fetch Schwab history. No sample data is shown.' }}</span>
           </div>
           <div v-if="data && data.symbol !== selectedSymbol" class="stale-chart-overlay" role="status">Loading {{ selectedSymbol }} · retaining last usable {{ data.symbol }} chart</div>
           <div class="pane-resize-controls">
@@ -782,7 +782,7 @@ onBeforeUnmount(() => {
             <span v-for="key in selectedStudyKeys" :key="key" :class="['study-readout', `study-${key}`]">
               <span>{{ studyLabels[key] }}</span><strong>{{ currentStudyValue(key) }}</strong><span class="study-arrow" :aria-label="`Direction ${studyArrow(key)}`">{{ studyArrow(key) }}</span>
             </span>
-            <span class="study-context-note">{{ inspected ? `${ist(inspected.time)} IST · ${replay ? 'historical replay' : 'completed candle'}` : 'Indicator values unavailable' }}</span>
+            <span class="study-context-note">{{ inspected ? `${et(inspected.time)} ET · ${replay ? 'historical replay' : 'completed candle'}` : 'Indicator values unavailable' }}</span>
           </div>
         </section>
 
@@ -791,11 +791,11 @@ onBeforeUnmount(() => {
           <template v-if="replay && data?.points.length">
             <button class="button button-compact" type="button" :aria-label="playing ? 'Pause historical replay' : 'Play historical replay'" @click="togglePlayback"><Pause v-if="playing" :size="14" /><Play v-else :size="14" /></button>
             <input type="range" min="1" :max="data.points.length" :value="cursor" aria-label="Replay candle" @input="scrubReplay(Number(($event.target as HTMLInputElement).value))" />
-            <span class="replay-time">{{ ist(range.inspectedTime) }} IST · {{ cursor }} / {{ data.points.length }}</span>
+            <span class="replay-time">{{ et(range.inspectedTime) }} ET · {{ cursor }} / {{ data.points.length }}</span>
           </template>
-          <span v-else class="replay-time">{{ inspected ? ist(inspected.time) : 'No candle selected' }} IST</span>
+          <span v-else class="replay-time">{{ inspected ? et(inspected.time) : 'No candle selected' }} ET</span>
           <button class="button button-compact" type="button" @click="fitContent"><RotateCcw :size="14" />Fit</button>
-          <span v-if="snapshot" class="scanner-asof">Scanner snapshot · {{ ist(Date.parse(snapshot.as_of) / 1000) }} IST</span>
+          <span v-if="snapshot" class="scanner-asof">Scanner snapshot · {{ et(Date.parse(snapshot.as_of) / 1000) }} ET</span>
         </div>
       </section>
     </div>

@@ -2,34 +2,13 @@ import json, math, hashlib, time, html
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from .sessions import continuous_mask, continuous_grid
+from .sessions import continuous_mask, continuous_grid, OPEN_MINUTE
 
-TZ = "Asia/Kolkata"
+TZ = "America/New_York"
 COLS = ["open", "high", "low", "close", "volume"]
 # Small explicit research mapping, not a complete or authoritative constituent database.
-SECTORS = {
-    "TCS": "NIFTY IT",
-    "INFY": "NIFTY IT",
-    "WIPRO": "NIFTY IT",
-    "HCLTECH": "NIFTY IT",
-    "HDFCBANK": "NIFTY BANK",
-    "ICICIBANK": "NIFTY BANK",
-    "SBIN": "NIFTY BANK",
-    "AXISBANK": "NIFTY BANK",
-    "KOTAKBANK": "NIFTY BANK",
-    "SUNPHARMA": "NIFTY PHARMA",
-    "DRREDDY": "NIFTY PHARMA",
-    "CIPLA": "NIFTY PHARMA",
-    "MARUTI": "NIFTY AUTO",
-    "M&M": "NIFTY AUTO",
-    "BAJAJ-AUTO": "NIFTY AUTO",
-    "HINDUNILVR": "NIFTY FMCG",
-    "ITC": "NIFTY FMCG",
-    "NESTLEIND": "NIFTY FMCG",
-    "TATASTEEL": "NIFTY METAL",
-    "JSWSTEEL": "NIFTY METAL",
-    "HINDALCO": "NIFTY METAL",
-}
+SECTORS = {"AAPL": "XLK", "MSFT": "XLK", "NVDA": "XLK", "JPM": "XLF", "JNJ": "XLV"}
+
 
 PARAMS = dict(
     length=12,
@@ -304,8 +283,8 @@ def market_state(b, daily, p=PARAMS):
     same_day = pd.Series(idx.date, index=idx).eq(pd.Series(idx.date, index=idx).shift())
     mins = pd.Series(idx.hour * 60 + idx.minute, index=idx)
     prev_mins = mins.shift()
-    during = (mins >= 555) & (mins < 930)
-    blackout = same_day & (prev_mins >= 555 + p["blackout_minutes"]) & (prev_mins < 930)
+    during = (mins >= OPEN_MINUTE) & (mins < 16 * 60)
+    blackout = same_day & (prev_mins >= OPEN_MINUTE + p["blackout_minutes"]) & (prev_mins < 16 * 60)
     ready = (
         dc.daily_ready
         & structure
@@ -405,7 +384,7 @@ def sector_strength(sector, b, p=PARAMS, self_test=False):
     mins = pd.Series(idx.hour * 60 + idx.minute, index=idx).shift()
     same = pd.Series(idx.date, index=idx).eq(pd.Series(idx.date, index=idx).shift())
     eligible = (
-        same & (mins >= 555 + p["blackout_minutes"]) & (mins < 930) & (not self_test)
+        same & (mins >= OPEN_MINUTE + p["blackout_minutes"]) & (mins < 16 * 60) & (not self_test)
     )
     return pd.DataFrame(
         {
@@ -426,7 +405,7 @@ def sector_strength(sector, b, p=PARAMS, self_test=False):
 
 
 def candle_timestamp(value):
-    """Interpret broker epochs and naive IST timestamps consistently."""
+    """Interpret broker epochs and naive ET timestamps consistently."""
     if isinstance(value, (int, float)):
         return pd.to_datetime(
             value, unit="ms" if value > 1e11 else "s", utc=True
@@ -441,7 +420,7 @@ def parse_candles(
     now=None,
     invalid_policy="quarantine",
     instrument="unknown",
-    session_profile="nse_cash",
+    session_profile="us_regular",
     allow_unusable=False,
 ):
     """Filter session/completion first; quarantine prices, isolate unavailable volume.
@@ -527,7 +506,7 @@ def parse_candles(
     quality = {
         "instrument": instrument,
         "session_profile": session_profile,
-        "session_policy_version": "nse-continuous-v1",
+        "session_policy_version": "us-regular-v1",
         "excluded_noncontinuous_rows": excluded_noncontinuous,
         "received_rows": received,
         "excluded_session_or_incomplete": excluded,
@@ -564,7 +543,7 @@ def parse_candles(
     return d
 
 
-def aligned_grid(frames, asof=None, session_profile="nse_cash", start=None, end=None):
+def aligned_grid(frames, asof=None, session_profile="us_regular", start=None, end=None):
     nonempty = {name: d for name, d in frames.items() if not d.empty}
     if not nonempty:
         raise ValueError("No source sessions to align")

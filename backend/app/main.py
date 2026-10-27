@@ -28,7 +28,7 @@ def create_app(config_dir=None):
             await asyncio.to_thread(workspace.feed.stop)
 
     app = FastAPI(
-        title="Edge Relative Groww workspace", version="1.0.0", lifespan=lifespan
+        title="Edge Relative Schwab workspace", version="1.0.0", lifespan=lifespan
     )
     app.state.workspace = workspace
 
@@ -65,7 +65,7 @@ def create_app(config_dir=None):
     @app.get("/api/v1/snapshot", response_model=ScanSnapshot)
     def snapshot():
         if workspace.snapshot is None:
-            raise HTTPException(404, "Fetch Groww history first.")
+            raise HTTPException(404, "Fetch Schwab history first.")
         return workspace.snapshot
 
     @app.get("/api/v1/charts/{symbol}", response_model=ChartResponse)
@@ -78,7 +78,7 @@ def create_app(config_dir=None):
         run = workspace.export_run
         if run is None:
             raise HTTPException(
-                404, "Fetch Groww history first; no loaded export run exists."
+                404, "Fetch Schwab history first; no loaded export run exists."
             )
         if run_id is not None and run_id != run.run_id:
             raise HTTPException(

@@ -123,7 +123,7 @@ def timestamps(epoch):
     return {
         "epoch_seconds": epoch,
         "timestamp_utc": stamp.isoformat(),
-        "timestamp_ist": local.isoformat(),
+        "timestamp_et": local.isoformat(),
         "session_date": str(local.date()),
     }
 
@@ -135,7 +135,7 @@ def frame_csv(frame):
             {**timestamps(int(stamp.timestamp())), **{c: number(row[c]) for c in COLS}}
         )
     return csv_bytes(
-        ["epoch_seconds", "timestamp_utc", "timestamp_ist", "session_date", *COLS], rows
+        ["epoch_seconds", "timestamp_utc", "timestamp_et", "session_date", *COLS], rows
     )
 
 
@@ -198,7 +198,7 @@ class ExportRun:
                 "export_schema_version": EXPORT_VERSION,
                 "run_id": self.run_id,
                 "symbol": symbol,
-                "provider": "groww",
+                "provider": "schwab",
                 "interval_minutes": 5,
                 "session_profile": chart.session_profile,
                 "session_policy_version": chart.session_policy_version,
@@ -351,8 +351,8 @@ class ExportRun:
                 "epoch_seconds": {
                     "description": "UTC epoch seconds identifying the beginning of a completed 5-minute interval."
                 },
-                "timestamp_ist": {
-                    "description": "Same candle beginning in Asia/Kolkata with explicit +05:30 offset."
+                "timestamp_et": {
+                    "description": "Same candle beginning in America/New_York with the applicable daylight-saving offset."
                 },
                 "is_closed": {
                     "description": "All exported rows are completed interval slots; missing prices may still be null."
@@ -435,7 +435,7 @@ class ExportRun:
         manifest = {
             "export_schema_version": EXPORT_VERSION,
             "run_id": self.run_id,
-            "provider": "groww",
+            "provider": "schwab",
             "exported_at": datetime.now(timezone.utc).isoformat(),
             "scan_generated_at": self.snapshot.generated_at.isoformat(),
             "request": self.request,
@@ -444,7 +444,7 @@ class ExportRun:
             "timezone": TZ,
             "price_benchmark": self.snapshot.price_benchmark,
             "volume_benchmark": self.snapshot.volume_benchmark,
-            "session_policy_version": "nse-continuous-v1",
+            "session_policy_version": "us-regular-v1",
             "session_profiles_by_symbol": {
                 s: c.session_profile for s, c in self.charts.items()
             },
@@ -466,7 +466,7 @@ class ExportRun:
             },
             "scope": "Full loaded run, independent of chart zoom, pane visibility, and replay cursor. Normalized inputs retain gaps/quarantined prices as null. No quotes or credentials.",
             "known_limits": [
-                "Regular NSE sessions only; no authoritative holiday calendar or corporate-action adjustments.",
+                "Regular US sessions only; no authoritative holiday calendar or corporate-action adjustments.",
                 "Reproduces this Python port, not guaranteed Thinkorswim prefetch parity.",
                 "Snapshot freshness flags are run context, not historical per-row validity.",
             ],
